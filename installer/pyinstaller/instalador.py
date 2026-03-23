@@ -26,7 +26,8 @@ MSG_LOADING_BSP    = "Loading Comodoo BSP, wait please ..."
 MSG_BSP_OK         = "BSP transfered sucessfully"
 MSG_GRUB            = "Wait please, Installing GRUB boot loader ..."
 MSG_REBOOT         = "Congratulations the installation is complete \n\n" \
-                      "Remove any installation media usaded during installation."
+                      "Remove any installation media usaded during installation." \
+                      "\n\nPress OK to shutdown the system."
 
 MIN_RAM = 64000
 
@@ -728,8 +729,34 @@ class Installer:
     def finalSteps(self):
         if self.is_serial:
             print(MSG_REBOOT)
+            input("Presiona Enter para apagar el sistema")
         else:
             self.screen.msgbox(MSG_REBOOT, None, None)
+
+        self._ordered_shutdown()
+
+    def _ordered_shutdown(self):
+        shutdown_attempts = [
+            ["systemctl", "poweroff"],
+            ["shutdown", "-h", "now"],
+            ["poweroff"],
+        ]
+
+        for cmd in shutdown_attempts:
+            binary = shutil.which(cmd[0]) or cmd[0]
+            if not (os.path.isfile(binary) and os.access(binary, os.X_OK)) and binary == cmd[0]:
+                self.log.info("Comando de apagado no disponible: %s", cmd[0])
+                continue
+
+            exec_cmd = [binary, *cmd[1:]] if binary != cmd[0] else cmd
+            self.log.info("Intentando apagado ordenado con: %s", " ".join(exec_cmd))
+            try:
+                run_command(exec_cmd, self.log, suppress_output=True)
+                return
+            except Exception:
+                self.log.exception("Fallo al ejecutar apagado con: %s", " ".join(exec_cmd))
+
+        self.log.error("No se pudo realizar apagado ordenado automaticamente")
 
 
 def main():
