@@ -34,3 +34,6 @@ CD
 CMakeLists.txt
 cmake-build-debug
 syslinux
+# Yocto
+bitbake
+bitbake-builds

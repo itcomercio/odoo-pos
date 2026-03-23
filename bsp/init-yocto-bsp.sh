@@ -2,9 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-WORKSPACE_DIR="${SCRIPT_DIR}/yocto-project"
+WORKSPACE_DIR="${SCRIPT_DIR}"
 
-mkdir -p "${WORKSPACE_DIR}"
 cd "${WORKSPACE_DIR}"
 
 if [ -d "bitbake" ]; then
@@ -14,6 +13,5 @@ else
     rm -rf bitbake/.git
 fi
 
-cd bitbake
-bitbake-setup init --non-interactive poky-master poky-with-sstate distro/poky machine/qemux86-64
+./bitbake/bin/bitbake-setup init --non-interactive poky-master poky-with-sstate distro/poky machine/qemux86-64
 
