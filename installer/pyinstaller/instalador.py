@@ -44,7 +44,7 @@ def mkdir_p(path):
     os.makedirs(path, exist_ok=True)
 
 
-def run_command(args, log, check=True, capture=False):
+def run_command(args, log, check=True, capture=False, suppress_output=False):
     log.info("Ejecutando comando: %s", " ".join(args))
     try:
         if capture:
@@ -56,15 +56,25 @@ def run_command(args, log, check=True, capture=False):
                 stdin=subprocess.DEVNULL,
             )
         else:
-            with open('/tmp/installer.log', 'a', encoding='utf-8') as log_file:
+            if suppress_output:
                 result = subprocess.run(
                     args,
                     check=check,
-                    stdout=log_file,
-                    stderr=log_file,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
                     text=True,
                     stdin=subprocess.DEVNULL,
                 )
+            else:
+                with open('/tmp/installer.log', 'a', encoding='utf-8') as log_file:
+                    result = subprocess.run(
+                        args,
+                        check=check,
+                        stdout=log_file,
+                        stderr=log_file,
+                        text=True,
+                        stdin=subprocess.DEVNULL,
+                    )
     except FileNotFoundError:
         log.exception("Comando no encontrado: %s", args[0])
         raise
@@ -238,10 +248,18 @@ class BspImage:
     def transfer_files(self, window):
         mkdir_p(INSTALLDEST)
         # FIXME: hard coded
-        run_command(["mount", "-t", "ext4", self.disk + "3", INSTALLDEST], self.log)
+        run_command(
+            ["mount", "-t", "ext4", self.disk + "3", INSTALLDEST],
+            self.log,
+            suppress_output=True,
+        )
         mkdir_p(INSTALLDEST + "/boot")
         # FIXME: hard coded
-        run_command(["mount", "-t", "ext4", self.disk + "1", INSTALLDEST + "/boot"], self.log)
+        run_command(
+            ["mount", "-t", "ext4", self.disk + "1", INSTALLDEST + "/boot"],
+            self.log,
+            suppress_output=True,
+        )
 
         if self.use_tar_zstd:
             run_command(["tar", "--zstd", "-xf", self.bspfile, "-C", self.outputdir], self.log)
@@ -278,17 +296,73 @@ class Installer:
     def __init__(self, log):
         self.log = log
         self.targetdisk = None
+        self.original_printk_loglevel = None
+        self.kernel_console_suppressed = False
         # Mantener TERM para ncurses; no fijamos tamano para que dialog se adapte al terminal.
         os.environ['TERM'] = 'linux'
         self.is_serial = self.is_serial_console()
         if not self.is_serial:
             self.screen = dialog.Dialog(dialog="dialog")
             self.drawMainFrame()
-        self.displayWellcome()
-        self.prepareDisk()
-        self.transferBSP()
-        self.installGRUB()
-        self.finalSteps()
+            self._suppress_kernel_console_messages()
+
+        try:
+            self.displayWellcome()
+            self.prepareDisk()
+            self.transferBSP()
+            self.installGRUB()
+            self.finalSteps()
+        finally:
+            if self.kernel_console_suppressed:
+                self._restore_kernel_console_messages()
+
+    def _read_kernel_console_loglevel(self):
+        try:
+            with open('/proc/sys/kernel/printk', 'r', encoding='utf-8') as f:
+                data = f.read().strip().split()
+            if not data:
+                return None
+            return int(data[0])
+        except Exception:
+            self.log.warning("No se pudo leer /proc/sys/kernel/printk")
+            return None
+
+    def _set_kernel_console_loglevel(self, level):
+        try:
+            with open('/proc/sys/kernel/printk', 'w', encoding='utf-8') as f:
+                f.write(f"{level}\n")
+            return True
+        except Exception:
+            self.log.warning("No se pudo escribir /proc/sys/kernel/printk con nivel %s", level)
+            return False
+
+    def _suppress_kernel_console_messages(self):
+        current_level = self._read_kernel_console_loglevel()
+        if current_level is None:
+            return
+
+        self.original_printk_loglevel = current_level
+        if self._set_kernel_console_loglevel(1):
+            self.kernel_console_suppressed = True
+            self.log.info(
+                "console_loglevel temporalmente cambiado de %s a 1 para preservar la UI",
+                current_level,
+            )
+
+    def _restore_kernel_console_messages(self):
+        if self.original_printk_loglevel is None:
+            return
+
+        if self._set_kernel_console_loglevel(self.original_printk_loglevel):
+            self.log.info(
+                "console_loglevel restaurado a %s",
+                self.original_printk_loglevel,
+            )
+        else:
+            self.log.warning(
+                "No se pudo restaurar console_loglevel a %s",
+                self.original_printk_loglevel,
+            )
 
     def is_serial_console(self):
         try:
@@ -439,6 +513,58 @@ class Installer:
 
         return 0
 
+    def _get_partition_uuid(self, partition_path):
+        try:
+            result = run_command([
+                "blkid", "-s", "UUID", "-o", "value", partition_path
+            ], self.log, capture=True)
+            uuid_value = (result.stdout or "").strip()
+            return uuid_value or None
+        except Exception:
+            self.log.warning("No se pudo obtener UUID para %s; se usara dispositivo directo", partition_path)
+            return None
+
+    def _ensure_boot_fstab_entry(self):
+        etc_dir = os.path.join(INSTALLDEST, "etc")
+        fstab_path = os.path.join(etc_dir, "fstab")
+        boot_partition = self.targetdisk + "1"
+        boot_spec = self._get_partition_uuid(boot_partition)
+        if boot_spec:
+            boot_spec = f"UUID={boot_spec}"
+        else:
+            boot_spec = boot_partition
+
+        existing_lines = []
+        if os.path.isfile(fstab_path):
+            with open(fstab_path, 'r', encoding='utf-8', errors='replace') as f:
+                existing_lines = f.readlines()
+        else:
+            mkdir_p(etc_dir)
+
+        for raw_line in existing_lines:
+            line = raw_line.strip()
+            if not line or line.startswith('#'):
+                continue
+            fields = line.split()
+            if len(fields) > 1 and fields[1] == "/boot":
+                self.log.info("fstab ya contiene una entrada para /boot; no se modifica")
+                return
+
+        if existing_lines and not existing_lines[-1].endswith("\n"):
+            existing_lines[-1] = existing_lines[-1] + "\n"
+
+        managed_comment = "# Added by Comodoo installer: ensure boot partition mount\n"
+        boot_entry = f"{boot_spec} /boot ext4 defaults 0 2\n"
+
+        with open(fstab_path, 'w', encoding='utf-8') as f:
+            f.writelines(existing_lines)
+            if existing_lines:
+                f.write("\n")
+            f.write(managed_comment)
+            f.write(boot_entry)
+
+        self.log.info("Entrada de /boot anadida a %s: %s", fstab_path, boot_entry.strip())
+
     def transferBSP(self):
         if self.is_serial:
             self.serial_gauge_start(MSG_LOADING_BSP)
@@ -454,7 +580,11 @@ class Installer:
 
         if not os.path.ismount(CDROM_MOUNT):
             try:
-                run_command(["mount", "-t", "iso9660", CDROM_DEVICE, CDROM_MOUNT], self.log)
+                run_command(
+                    ["mount", "-t", "iso9660", CDROM_DEVICE, CDROM_MOUNT],
+                    self.log,
+                    suppress_output=True,
+                )
             except subprocess.CalledProcessError as error:
                 raise RuntimeError(
                     f"No se pudo montar el CDROM {CDROM_DEVICE} en {CDROM_MOUNT}"
@@ -476,6 +606,7 @@ class Installer:
             self.screen.gauge_update(10)
 
         tb.transfer_files(self.screen if not self.is_serial else None)
+        self._ensure_boot_fstab_entry()
 
         if self.is_serial:
             self.serial_gauge_update(90)
