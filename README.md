@@ -106,9 +106,9 @@ El instalador Python (`installer/pyinstaller/instalador.py`) realiza, de forma a
 1. Seleccion de disco objetivo (actualmente fijo a `/dev/sda`).
 2. Reparticionado completo del disco.
 3. Formateo:
-   - `/dev/sda1` -> `ext3` (boot)
+   - `/dev/sda1` -> `ext4` (boot)
    - `/dev/sda2` -> `swap`
-   - `/dev/sda3` -> `ext3` (root)
+   - `/dev/sda3` -> `ext4` (root)
 4. Montaje de ISO en `/mnt/cdrom` y extraccion del BSP/rootfs.
 5. Instalacion de GRUB BIOS (`grub2-install --target=i386-pc`).
 

@@ -18,9 +18,9 @@ MSG_DISK_SET       = "Wait please The installer is preparing %s disk " \
 MSG_PARTITION      = "Partitioning in progress ..."
 MSG_PART_DONE      = "The disk was sucessfully formated"
 MSG_BOOTPART_READY = "Boot partition. Ready to format the Boot partition"
-MSG_FORMAT_BOOT    = "Making ext3 filesystem in boot partition ..."
+MSG_FORMAT_BOOT    = "Making ext4 filesystem in boot partition ..."
 MSG_FORMAT_OK      = "The disk was sucessfully formated"
-MSG_FORMAT_ROOT    = "Making ext3 filesystem in root partition ..."
+MSG_FORMAT_ROOT    = "Making ext4 filesystem in root partition ..."
 MSG_FORMAT_SWAP    = "Making swap filesystem ..."
 MSG_LOADING_BSP    = "Loading Comodoo BSP, wait please ..."
 MSG_BSP_OK         = "BSP transfered sucessfully"
@@ -38,7 +38,7 @@ MEGABYTE = 1024 * 1024
 BOOTPARTITION = 1
 INSTALLDEST = "/mnt/disk"
 
-fstype2tool = {"ext3": ("mkfs.ext3", "-F", "-v"), "swap": ("mkswap", "-V1")}
+fstype2tool = {"ext4": ("mkfs.ext4", "-F", "-v"), "swap": ("mkswap", "-V1")}
 
 def mkdir_p(path):
     os.makedirs(path, exist_ok=True)
@@ -156,7 +156,7 @@ class DiskSet:
         # this is not needed.
         boot_partition_geom = parted.Geometry(device=target_device, start=2048,
                                               end=bootsize)
-        filesystem_target = parted.FileSystem(type="ext3",
+        filesystem_target = parted.FileSystem(type="ext4",
                                               geometry=boot_partition_geom)
         boot_partition = parted.Partition(disk=target_disk,
                                           fs=filesystem_target,
@@ -179,7 +179,7 @@ class DiskSet:
         root_partition_geom = parted.Geometry(device=target_device,
                                               start=bootsize + swapsize + 1,
                                               end=target_device.length - 1)
-        filesystem_target = parted.FileSystem(type="ext3",
+        filesystem_target = parted.FileSystem(type="ext4",
                                               geometry=root_partition_geom)
         root_partition = parted.Partition(disk=target_disk,
                                           fs=filesystem_target,
@@ -238,10 +238,10 @@ class BspImage:
     def transfer_files(self, window):
         mkdir_p(INSTALLDEST)
         # FIXME: hard coded
-        run_command(["mount", "-t", "ext3", self.disk + "3", INSTALLDEST], self.log)
+        run_command(["mount", "-t", "ext4", self.disk + "3", INSTALLDEST], self.log)
         mkdir_p(INSTALLDEST + "/boot")
         # FIXME: hard coded
-        run_command(["mount", "-t", "ext3", self.disk + "1", INSTALLDEST + "/boot"], self.log)
+        run_command(["mount", "-t", "ext4", self.disk + "1", INSTALLDEST + "/boot"], self.log)
 
         if self.use_tar_zstd:
             run_command(["tar", "--zstd", "-xf", self.bspfile, "-C", self.outputdir], self.log)
@@ -367,7 +367,7 @@ class Installer:
             self.screen.gauge_start(MSG_FORMAT_BOOT, None, None, 1)
 
         if not False:
-            ds.format_disk(None, self.targetdisk + "1", fstype2tool["ext3"])
+            ds.format_disk(None, self.targetdisk + "1", fstype2tool["ext4"])
         else:
             time.sleep(3)
 
@@ -395,7 +395,7 @@ class Installer:
             self.screen.gauge_update(10)
 
         if not False:
-            ds.format_disk(None, self.targetdisk + "3", fstype2tool["ext3"])
+            ds.format_disk(None, self.targetdisk + "3", fstype2tool["ext4"])
         else:
             time.sleep(3)
 

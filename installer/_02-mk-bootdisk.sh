@@ -24,7 +24,7 @@ fi
 echo_note "WARNING" "#### Building initrd image with dracut ####"
 sudo dracut -f -v \
     -m "base bash" \
-    --install "python3 bash ls cat mount mkdir dialog vim toe parted mkfs.ext3 mkswap grub2-install grub2-probe grub2-mkimage grub2-bios-setup" \
+    --install "python3 bash ls cat mount mkdir dialog vim toe parted mkfs.ext4 mkswap grub2-install grub2-probe grub2-mkimage grub2-bios-setup" \
     --include "/usr/lib64/python${PY_VER}" "/usr/lib64/python${PY_VER}" \
     --include "/usr/lib/python${PY_VER}" "/usr/lib/python${PY_VER}" \
     --include "${SITE_PKGS}/dialog.py" "${SITE_PKGS}/dialog.py" \
