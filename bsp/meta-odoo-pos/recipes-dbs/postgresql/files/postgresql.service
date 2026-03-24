@@ -1,0 +1,18 @@
+[Unit]
+Description=PostgreSQL Database Server
+After=network.target postgresql-initdb.service
+Requires=postgresql-initdb.service
+
+[Service]
+Type=forking
+User=postgres
+Group=postgres
+Environment=PGDATA=/var/lib/postgresql/data
+ExecStart=/usr/bin/pg_ctl start -D ${PGDATA} -s -w -t 300
+ExecStop=/usr/bin/pg_ctl stop -D ${PGDATA} -s -m fast
+ExecReload=/usr/bin/pg_ctl reload -D ${PGDATA} -s
+PIDFile=/var/lib/postgresql/data/postmaster.pid
+
+[Install]
+WantedBy=multi-user.target
+

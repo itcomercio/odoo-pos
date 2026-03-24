@@ -1,0 +1,17 @@
+[Unit]
+Description=Initialize PostgreSQL data directory on first boot
+DefaultDependencies=no
+After=local-fs.target
+Before=postgresql.service
+ConditionPathExists=!/var/lib/postgresql/data/PG_VERSION
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+ExecStart=/usr/libexec/postgresql-initdb.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+

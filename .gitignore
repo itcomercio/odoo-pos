@@ -37,3 +37,4 @@ syslinux
 # Yocto
 bitbake
 bitbake-builds
+odoo-pos-image-*
