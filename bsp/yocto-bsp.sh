@@ -7,6 +7,7 @@ ORIGINAL_DIR=$(pwd)
 META_LAYER_DIR="${WORKSPACE_DIR}/meta-odoo-pos"
 BUILD_ENV_SCRIPT="${WORKSPACE_DIR}/bitbake-builds/poky-master/build/init-build-env"
 TARGET_DISTRO='DISTRO = "odoo-pos-system"'
+TARGET_MACHINE='MACHINE = "genericx86-64"'
 BUILD_TARGET="odoo-pos-image"
 RUN_BUILD=0
 MODE_SELECTED=""
@@ -80,7 +81,7 @@ else
 fi
 
 info "Inicializando entorno Yocto base"
-./bitbake/bin/bitbake-setup init --non-interactive poky-master poky-with-sstate distro/poky machine/qemux86-64
+./bitbake/bin/bitbake-setup init --non-interactive poky-master poky-with-sstate distro/poky machine/genericx86-64
 
 info "Eliminando clon temporal de bitbake"
 rm -rf bitbake
@@ -125,6 +126,13 @@ if grep -Eq '^[[:space:]]*DISTRO[[:space:]]*=' "${LOCAL_CONF}"; then
     sed -i -E 's|^[[:space:]]*DISTRO[[:space:]]*=.*$|DISTRO = "odoo-pos-system"|' "${LOCAL_CONF}"
 else
     printf '\n%s\n' "${TARGET_DISTRO}" >> "${LOCAL_CONF}"
+fi
+
+info "Configurando MACHINE=genericx86-64 en ${LOCAL_CONF}"
+if grep -Eq '^[[:space:]]*MACHINE[[:space:]]*=' "${LOCAL_CONF}"; then
+    sed -i -E 's|^[[:space:]]*MACHINE[[:space:]]*=.*$|MACHINE = "genericx86-64"|' "${LOCAL_CONF}"
+else
+    printf '%s\n' "${TARGET_MACHINE}" >> "${LOCAL_CONF}"
 fi
 
 if [ "${RUN_BUILD}" -eq 1 ]; then
