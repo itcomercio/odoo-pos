@@ -18,12 +18,9 @@ rm -rf bitbake
 
 # Add custom layers to:
 # bitbake-builds/poky-master/build/conf/bblayers.conf
-bitbake-layers add-layer meta-odoo-pos
-bitbake-layers show-layers
-
-echo "source bitbake-builds/poky-master/build/init-build-env"
-echo "export DISTRO=odoo-pos-systemd"
-# core-image-weston: A very basic Wayland image with a terminal.
-# This image provides the Wayland protocol libraries and the
-# reference Weston compositor.
-echo "bitbake core-image-weston"
+echo "1. source bitbake-builds/poky-master/build/init-build-env"
+echo "2. bitbake-config-build disable-fragment distro/poky"
+echo "3. bitbake-layers add-layer meta-odoo-pos"
+echo "4. bitbake-layers show-layers"
+echo "5. export DISTRO=odoo-pos-system"
+echo "6. bitbake odoo-pos-image"
