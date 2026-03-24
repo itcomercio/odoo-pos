@@ -8,9 +8,15 @@ Layer name
 How to add the layer
 ====================
 
-From the workspace root (where `bitbake-builds/` is generated):
+The recommended flow is to use the bootstrap script from `bsp/`:
 
-  bitbake-layers add-layer meta-odoo-pos
+  cd /home/javiroman/HACK/dev/itc-github/public/odoo-pos.git/bsp
+  ./yocto-bsp.sh --build
+
+To prepare the build environment without starting BitBake immediately:
+
+  cd /home/javiroman/HACK/dev/itc-github/public/odoo-pos.git/bsp
+  ./yocto-bsp.sh --no-build
 
 Systemd customization in this layer
 ===================================
@@ -28,11 +34,8 @@ The distro is based on poky and applies:
 Build using this distro
 =======================
 
-  source bitbake-builds/poky-master/build/init-build-env
-  bitbake-config-build disable-fragment distro/poky
-  bitbake-layers add-layer meta-odoo-pos
-  export DISTRO=odoo-pos-system
-  bitbake odoo-pos-image
+  cd /home/javiroman/HACK/dev/itc-github/public/odoo-pos.git/bsp
+  ./yocto-bsp.sh --build
 
 If your build tree was already initialized with:
 
@@ -40,6 +43,15 @@ If your build tree was already initialized with:
 
 you must disable the builtin `distro/poky` fragment before setting `DISTRO`,
 otherwise BitBake will abort with a fragment conflict.
+
+`yocto-bsp.sh` already performs that step, adds `meta-odoo-pos`, updates
+`local.conf` with `DISTRO = "odoo-pos-system"`, and can build
+`odoo-pos-image` automatically.
+
+With `--no-build`, it performs the same setup steps but skips the final
+`bitbake odoo-pos-image` invocation so you can run it manually later.
+
+With `--build`, it performs the setup and then runs `bitbake odoo-pos-image`.
 
 Custom image recipe
 ===================

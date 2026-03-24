@@ -49,6 +49,52 @@ Si faltan binarios Limine, revisa:
 - `installer/limine/README.md`
 - `installer/limine/download-limine.sh`
 
+## Preparacion reproducible de Yocto (BSP)
+
+El flujo versionado para preparar la build Yocto esta en `bsp/`:
+
+```bash
+cd bsp
+./yocto-bsp.sh --no-build
+```
+
+Si solo quieres preparar el entorno y dejar la compilacion para despues:
+
+```bash
+cd bsp
+./yocto-bsp.sh --no-build
+```
+
+Si quieres que el propio script ejecute toda la build:
+
+```bash
+cd bsp
+./yocto-bsp.sh --build
+```
+
+`yocto-bsp.sh` realiza el flujo completo de bootstrap Yocto:
+
+- inicializa el entorno Yocto base
+- carga `init-build-env`
+- desactiva el fragmento `distro/poky`
+- añade `meta-odoo-pos`
+- fija `DISTRO = "odoo-pos-system"` en `local.conf`
+
+Con `--no-build`, realiza todos los pasos anteriores y deja el entorno listo
+para ejecutar manualmente:
+
+```bash
+bitbake odoo-pos-image
+```
+
+Con `--build`, ademas ejecuta automaticamente:
+
+```bash
+bitbake odoo-pos-image
+```
+
+Si se invoca sin parametros, muestra la ayuda.
+
 ## Uso rapido
 
 Desde `installer/`:
