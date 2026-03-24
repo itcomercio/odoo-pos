@@ -22,6 +22,7 @@ bitbake-layers add-layer meta-odoo-pos
 bitbake-layers show-layers
 
 echo "source bitbake-builds/poky-master/build/init-build-env"
+echo "export DISTRO=odoo-pos-systemd"
 # core-image-weston: A very basic Wayland image with a terminal.
 # This image provides the Wayland protocol libraries and the
 # reference Weston compositor.
