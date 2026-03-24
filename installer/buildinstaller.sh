@@ -14,7 +14,6 @@ Opciones:
     --install --early
                   Sub-opcion de --install: ejecuta _04-run-install.sh --early
     --boot        Ejecuta _04-run-install.sh --boot (arranca el SO instalado)
-    --boot-serial Ejecuta _04-run-install.sh --boot-serial (arranque serial)
     --buildall    Ejecuta todas las fases: env, boot, cdrom e install
     --clean       Limpia artefactos temporales de trabajo
     --debug       Exporta DEBUG=--debug para los scripts llamados
@@ -27,7 +26,6 @@ Ejemplos:
     ./buildinstaller.sh --install
     ./buildinstaller.sh --install --early
     ./buildinstaller.sh --boot
-    ./buildinstaller.sh --boot-serial
 EOF
     exit 0
 }
@@ -111,15 +109,6 @@ while [ $# -gt 0 ]; do
             INSTALL_MODE="boot"
             shift
             ;;
-        --boot-serial)
-            if [ -n "$INSTALL_MODE" ] && [ "$INSTALL_MODE" != "boot-serial" ]; then
-                usage
-                exit 1
-            fi
-            RUN_INSTALL=1
-            INSTALL_MODE="boot-serial"
-            shift
-            ;;
         *)
             usage
             ;;
@@ -152,9 +141,6 @@ if [ "$RUN_INSTALL" -eq 1 ]; then
             ;;
         boot)
             ./_04-run-install.sh --boot
-            ;;
-        boot-serial)
-            ./_04-run-install.sh --boot-serial
             ;;
         *)
             usage
