@@ -30,7 +30,8 @@ run_install() {
         -hda "$DISK_IMAGE" \
         -cdrom "$ISO_IMAGE" \
         -boot d \
-        -m size=4096
+        -m size=4096 \
+        -vga std
 }
 
 run_early() {

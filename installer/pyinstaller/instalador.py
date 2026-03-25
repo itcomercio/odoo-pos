@@ -367,10 +367,21 @@ class Installer:
 
     def is_serial_console(self):
         try:
-            with open('/proc/cmdline', 'r') as f:
-                cmdline = f.read()
-                return 'console=ttyS0' in cmdline
-        except:
+            with open('/proc/cmdline', 'r', encoding='utf-8') as f:
+                cmdline = f.read().strip()
+
+            consoles = []
+            for token in cmdline.split():
+                if token.startswith('console='):
+                    consoles.append(token.split('=', 1)[1])
+
+            if not consoles:
+                return False
+
+            # Linux usa el ultimo console= como /dev/console principal.
+            primary_console = consoles[-1]
+            return primary_console.startswith('ttyS')
+        except Exception:
             return False
 
     def displayWellcome(self):

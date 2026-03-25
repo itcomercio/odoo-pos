@@ -79,10 +79,35 @@ timeout: 5
 verbose: yes
 interface_help_colour: 3
 
-/Comodoo Installer
+/Comodoo Installer (VGA)
     protocol: linux
     path: boot():/boot/vmlinuz
     module_path: boot():/boot/initrd.img
+    cmdline: console=tty0 loglevel=7 rd.systemd.show_status=1 systemd.log_level=debug
+
+/Comodoo Installer (VGA + nomodeset)
+    protocol: linux
+    path: boot():/boot/vmlinuz
+    module_path: boot():/boot/initrd.img
+    cmdline: console=tty0 loglevel=7 rd.systemd.show_status=1 systemd.log_level=debug nomodeset
+
+/Comodoo Installer (VGA + simpledrm off)
+    protocol: linux
+    path: boot():/boot/vmlinuz
+    module_path: boot():/boot/initrd.img
+    cmdline: console=tty0 loglevel=7 rd.systemd.show_status=1 systemd.log_level=debug nomodeset video=simpledrm:off
+
+/Comodoo Installer (DUAL VGA+SERIAL)
+    protocol: linux
+    path: boot():/boot/vmlinuz
+    module_path: boot():/boot/initrd.img
+    cmdline: console=ttyS0,115200 console=tty0 loglevel=7 rd.systemd.show_status=1 systemd.log_level=debug
+
+/Comodoo Installer (SERIAL)
+    protocol: linux
+    path: boot():/boot/vmlinuz
+    module_path: boot():/boot/initrd.img
+    cmdline: console=ttyS0,115200 loglevel=7 rd.systemd.show_status=1 systemd.log_level=debug
 EOF
 }
 
