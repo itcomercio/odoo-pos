@@ -7,7 +7,6 @@ ORIGINAL_DIR=$(pwd)
 META_LAYER_DIR="${WORKSPACE_DIR}/meta-odoo-pos"
 BUILD_ENV_SCRIPT="${WORKSPACE_DIR}/bitbake-builds/poky-master/build/init-build-env"
 TARGET_DISTRO='DISTRO = "odoo-pos-system"'
-TARGET_MACHINE='MACHINE = "genericx86-64"'
 BUILD_TARGET="odoo-pos-image"
 RUN_BUILD=0
 MODE_SELECTED=""
@@ -128,12 +127,6 @@ else
     printf '\n%s\n' "${TARGET_DISTRO}" >> "${LOCAL_CONF}"
 fi
 
-info "Configurando MACHINE=genericx86-64 en ${LOCAL_CONF}"
-if grep -Eq '^[[:space:]]*MACHINE[[:space:]]*=' "${LOCAL_CONF}"; then
-    sed -i -E 's|^[[:space:]]*MACHINE[[:space:]]*=.*$|MACHINE = "genericx86-64"|' "${LOCAL_CONF}"
-else
-    printf '%s\n' "${TARGET_MACHINE}" >> "${LOCAL_CONF}"
-fi
 
 if [ "${RUN_BUILD}" -eq 1 ]; then
     info "Lanzando build de ${BUILD_TARGET}"
@@ -143,6 +136,6 @@ else
     info "Build dir: ${BUILD_DIR}"
     info "Config: ${LOCAL_CONF}"
     info "Para compilar manualmente ejecuta:"
-    info "cd ${BUILD_DIR} && bitbake ${BUILD_TARGET}"
+    info "source bitbake-builds/poky-master/build/init-build-env && bitbake ${BUILD_TARGET}"
 fi
 
