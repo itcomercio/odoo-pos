@@ -7,8 +7,6 @@ ConditionPathExists=!/var/lib/postgresql/data/PG_VERSION
 
 [Service]
 Type=oneshot
-User=postgres
-Group=postgres
 ExecStart=/usr/libexec/postgresql-initdb.sh
 RemainAfterExit=yes
 

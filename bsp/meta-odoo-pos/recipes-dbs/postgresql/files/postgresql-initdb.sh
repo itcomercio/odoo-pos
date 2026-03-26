@@ -7,8 +7,14 @@ if [ -f "${PGDATA}/PG_VERSION" ]; then
     exit 0
 fi
 
-install -d -m 0700 "${PGDATA}"
+if [ "$(id -u)" -ne 0 ]; then
+    echo "postgresql-initdb.sh must run as root" >&2
+    exit 1
+fi
+
+mkdir -p "${PGDATA}"
+chmod 0700 "${PGDATA}"
 chown -R postgres:postgres /var/lib/postgresql
 
-exec /usr/bin/initdb -D "${PGDATA}" --encoding=UTF8 --locale=C
+exec su -s /bin/sh postgres -c "/usr/bin/initdb -D '${PGDATA}' --encoding=UTF8 --locale=C"
 

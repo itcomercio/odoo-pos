@@ -748,9 +748,11 @@ class Installer:
 
     def _ordered_shutdown(self):
         shutdown_attempts = [
-            ["systemctl", "poweroff"],
+            ["busybox", "poweroff", "-f"],
             ["shutdown", "-h", "now"],
             ["poweroff"],
+            ["halt", "-f"],
+            ["systemctl", "poweroff"],
         ]
 
         for cmd in shutdown_attempts:

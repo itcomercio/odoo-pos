@@ -14,5 +14,11 @@ IMAGE_FSTYPES:append = " tar.zst"
 # Include PostgreSQL server/client tools and bash in the final image.
 IMAGE_INSTALL:append = " postgresql postgresql-server bash"
 
-# Use bash as the default login shell for root.
-EXTRA_USERS_PARAMS = "usermod -s /bin/bash root;"
+# Default root password: odoo
+ROOT_PASSWORD_HASH = "\$6\$c6aQckAX4qXzO1vZ\$.GUniYswCC/RjUB5QCUTxnbM9g0.IhI4wKhtQa/hadwba368xN74WhFC3IhnUVwhk4zyg.J27dU2WZ2S.vsUQ0"
+
+# Set the root shell to bash and provision a deterministic root password.
+EXTRA_USERS_PARAMS = " \
+	usermod -p '${ROOT_PASSWORD_HASH}' root; \
+	usermod -s /bin/bash root; \
+"

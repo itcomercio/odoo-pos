@@ -17,6 +17,10 @@ DEPENDS = "openssl readline zlib icu bison-native flex-native perl-native"
 
 inherit autotools pkgconfig systemd useradd
 
+# Loadable backend modules (e.g. dict_snowball.so) resolve some symbols from
+# the postgres executable at runtime. Ensure they are exported by the linker.
+LDFLAGS:append = " -Wl,--export-dynamic"
+
 # PostgreSQL release tarballs already ship a generated ./configure.
 # Run configure directly to avoid autoreconf (which enforces autoconf 2.69).
 do_configure() {
@@ -37,7 +41,7 @@ PACKAGES += "${PN}-server"
 ALLOW_EMPTY:${PN}-server = "1"
 RDEPENDS:${PN}-server = "${PN}"
 
-RDEPENDS:${PN} += "shadow tzdata"
+RDEPENDS:${PN} += "shadow tzdata glibc-utils"
 
 SYSTEMD_PACKAGES = "${PN}"
 SYSTEMD_SERVICE:${PN} = "postgresql-initdb.service postgresql.service"

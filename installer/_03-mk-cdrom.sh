@@ -118,7 +118,6 @@ CD_BOOT_DIR="${CD_TREE_DIR}/boot"
 CD_LIMINE_DIR="${CD_BOOT_DIR}/limine"
 CD_EFI_BOOT_DIR="${CD_TREE_DIR}/EFI/BOOT"
 CD_BSP_DIR="${CD_TREE_DIR}/bsp"
-CD_IMAGES_DIR="${CD_TREE_DIR}/images"
 INITRD_IMAGE="${CD_BOOT_DIR}/initrd.img"
 KERNEL_DEST="${CD_BOOT_DIR}/vmlinuz"
 BSP_DEST="${CD_BSP_DIR}/${BSP_OUTPUT_NAME}"
@@ -129,7 +128,7 @@ KERNEL_SOURCE=$(find_single_file "la imagen de kernel Yocto (bzImage*)" "${YOCTO
 BSP_SOURCE=$(find_single_file "el BSP/raiz del sistema Yocto" "${YOCTO_DIR}/*.bsp" "${YOCTO_DIR}/core-image*.tar.zst" "${YOCTO_DIR}/core-image*.tar.gz" "${YOCTO_DIR}/mcore-image*.tar.zst" "${YOCTO_DIR}/mcore-image*.tar.gz" "${YOCTO_DIR}/*rootfs*.tar.zst" "${YOCTO_DIR}/*rootfs*.tar.gz") || exit 1
 
 echo_note "WARNING" "[015] populate final boot tree with Limine ..."
-mkdir -p "${CD_BOOT_DIR}" "${CD_LIMINE_DIR}" "${CD_EFI_BOOT_DIR}" "${CD_BSP_DIR}" "${CD_IMAGES_DIR}"
+mkdir -p "${CD_BOOT_DIR}" "${CD_LIMINE_DIR}" "${CD_EFI_BOOT_DIR}" "${CD_BSP_DIR}" 
 
 if [ ! -f "${INITRD_IMAGE}" ]; then
     echo_note "ERROR" "No existe ${INITRD_IMAGE}. Ejecuta primero ./_02-mk-bootdisk.sh o ./buildinstaller.sh --bootdisk"
