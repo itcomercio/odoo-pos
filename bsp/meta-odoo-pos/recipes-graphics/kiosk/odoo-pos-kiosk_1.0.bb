@@ -4,7 +4,7 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 SRC_URI = " \
-    file://weston.ini \
+    file://weston-kiosk-env.conf \
     file://odoo-pos-kiosk.service \
     file://odoo-pos-kiosk-launcher.sh \
     file://index.html \
@@ -19,16 +19,14 @@ SYSTEMD_PACKAGES = "${PN}"
 SYSTEMD_SERVICE:${PN} = "odoo-pos-kiosk.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 
-RDEPENDS:${PN} += "bash weston"
-
-# Replace weston-init with our kiosk configuration
-RCONFLICTS:${PN} += "weston-init"
-RPROVIDES:${PN} += "weston-init"
-RREPLACES:${PN} += "weston-init"
+RDEPENDS:${PN} += "bash weston weston-init"
 
 do_install() {
-    install -d ${D}${sysconfdir}/xdg/weston
-    install -m 0644 ${UNPACKDIR}/weston.ini ${D}${sysconfdir}/xdg/weston/weston.ini
+    # Drop-in to force a stable XDG_RUNTIME_DIR=/run for the weston.service unit,
+    # so both Weston and the kiosk launcher agree on where the Wayland socket lives.
+    install -d ${D}${sysconfdir}/systemd/system/weston.service.d
+    install -m 0644 ${UNPACKDIR}/weston-kiosk-env.conf \
+        ${D}${sysconfdir}/systemd/system/weston.service.d/kiosk-env.conf
 
     install -d ${D}${systemd_system_unitdir}
     install -m 0644 ${UNPACKDIR}/odoo-pos-kiosk.service ${D}${systemd_system_unitdir}/odoo-pos-kiosk.service
@@ -38,12 +36,15 @@ do_install() {
 
     install -d ${D}${datadir}/odoo-pos/kiosk
     install -m 0644 ${UNPACKDIR}/index.html ${D}${datadir}/odoo-pos/kiosk/index.html
+
+    install -d ${D}/var/lib/odoo-pos/chromium-profile
 }
 
 FILES:${PN} += " \
-    ${sysconfdir}/xdg/weston/weston.ini \
+    ${sysconfdir}/systemd/system/weston.service.d/kiosk-env.conf \
     ${systemd_system_unitdir}/odoo-pos-kiosk.service \
     ${bindir}/odoo-pos-kiosk-launcher.sh \
     ${datadir}/odoo-pos/kiosk/index.html \
+    /var/lib/odoo-pos/chromium-profile \
 "
 
