@@ -1,7 +1,8 @@
 [Unit]
 Description=Odoo POS Kiosk Browser
-After=weston.service
+After=weston.service run-postinsts.service postgresql.service
 Requires=weston.service
+PartOf=weston.service
 
 [Service]
 Type=simple
