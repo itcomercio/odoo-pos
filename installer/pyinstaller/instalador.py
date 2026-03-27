@@ -32,8 +32,7 @@ MSG_REBOOT         = "Congratulations the installation is complete \n\n" \
 MIN_RAM = 64000
 
 BSPFILE = "beetlepos-image-beetlepos.bsp"
-CDROM_DEVICE = "/dev/sr0"
-CDROM_MOUNT = "/mnt/cdrom"
+INSTALL_MEDIA_MOUNT = "/mnt/install-media"
 
 MEGABYTE = 1024 * 1024
 BOOTPARTITION = 1
@@ -217,8 +216,8 @@ class DiskSet:
         run_command(cmd, self.log)
 
 class BspImage:
-    def __init__(self, filename, destdir, disk, log):
-        self.bspfile = os.path.join(CDROM_MOUNT, "bsp", filename)
+    def __init__(self, filename, media_mount, destdir, disk, log):
+        self.bspfile = os.path.join(media_mount, "bsp", filename)
         self.outputdir = destdir
         self.total = 0
         self.list_of_names = []
@@ -577,6 +576,88 @@ class Installer:
 
         self.log.info("Entrada de /boot anadida a %s: %s", fstab_path, boot_entry.strip())
 
+    def _find_bsp_in_existing_mounts(self):
+        try:
+            with open('/proc/mounts', 'r', encoding='utf-8', errors='replace') as mounts_file:
+                for raw_line in mounts_file:
+                    fields = raw_line.split()
+                    if len(fields) < 2:
+                        continue
+
+                    mount_point = fields[1]
+                    candidate_bsp = os.path.join(mount_point, "bsp", BSPFILE)
+                    if os.path.isfile(candidate_bsp):
+                        self.log.info("BSP localizado en punto de montaje existente: %s", mount_point)
+                        return mount_point
+        except Exception:
+            self.log.warning("No se pudo inspeccionar /proc/mounts para localizar el medio de instalacion")
+
+        return None
+
+    def _candidate_install_media_devices(self):
+        devices = []
+
+        def add_device(path):
+            if not path or not path.startswith('/dev/'):
+                return
+            if path not in devices:
+                devices.append(path)
+
+        # Prioriza dispositivos con filesystem optico (ISO/UDF), tipicos de USB booteable por dd.
+        for fs_type in ("iso9660", "udf"):
+            try:
+                result = run_command(
+                    ["blkid", "-t", f"TYPE={fs_type}", "-o", "device"],
+                    self.log,
+                    capture=True,
+                    check=False,
+                )
+                for line in (result.stdout or "").splitlines():
+                    add_device(line.strip())
+            except Exception:
+                self.log.warning("No se pudo consultar blkid para TYPE=%s", fs_type)
+
+        # Fallback para escenarios QEMU clasicos con -cdrom.
+        add_device("/dev/sr0")
+
+        return devices
+
+    def _mount_install_media(self):
+        existing_mount = self._find_bsp_in_existing_mounts()
+        if existing_mount:
+            return existing_mount
+
+        mkdir_p(INSTALL_MEDIA_MOUNT)
+
+        for device in self._candidate_install_media_devices():
+            if not os.path.exists(device):
+                continue
+
+            try:
+                run_command(
+                    ["mount", "-o", "ro", "-t", "auto", device, INSTALL_MEDIA_MOUNT],
+                    self.log,
+                    suppress_output=True,
+                )
+            except subprocess.CalledProcessError:
+                continue
+
+            bsp_path = os.path.join(INSTALL_MEDIA_MOUNT, "bsp", BSPFILE)
+            if os.path.isfile(bsp_path):
+                self.log.info("Medio de instalacion detectado: %s", device)
+                return INSTALL_MEDIA_MOUNT
+
+            try:
+                run_command(["umount", INSTALL_MEDIA_MOUNT], self.log, suppress_output=True, check=False)
+            except Exception:
+                pass
+
+        raise FileNotFoundError(
+            "No se pudo localizar el medio de instalacion con el BSP. "
+            "Asegura que el USB de instalacion esta conectado y contiene /bsp/"
+            f"{BSPFILE}."
+        )
+
     def transferBSP(self):
         if self.is_serial:
             self.serial_gauge_start(MSG_LOADING_BSP)
@@ -588,27 +669,15 @@ class Installer:
         else:
             self.screen.gauge_update(10)
 
-        mkdir_p(CDROM_MOUNT)
+        install_media_mount = self._mount_install_media()
 
-        if not os.path.ismount(CDROM_MOUNT):
-            try:
-                run_command(
-                    ["mount", "-t", "iso9660", CDROM_DEVICE, CDROM_MOUNT],
-                    self.log,
-                    suppress_output=True,
-                )
-            except subprocess.CalledProcessError as error:
-                raise RuntimeError(
-                    f"No se pudo montar el CDROM {CDROM_DEVICE} en {CDROM_MOUNT}"
-                ) from error
-
-        bsp_dir = os.path.join(CDROM_MOUNT, "bsp")
+        bsp_dir = os.path.join(install_media_mount, "bsp")
         if not os.path.isdir(bsp_dir):
             raise FileNotFoundError(
-                f"No existe el directorio BSP esperado en el CDROM: {bsp_dir}"
+                f"No existe el directorio BSP esperado en el medio de instalacion: {bsp_dir}"
             )
 
-        tb = BspImage(BSPFILE, INSTALLDEST, self.targetdisk, self.log)
+        tb = BspImage(BSPFILE, install_media_mount, INSTALLDEST, self.targetdisk, self.log)
         tb.load_bsp()
         total = tb.get_total_files()
 
