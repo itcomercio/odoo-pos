@@ -62,3 +62,26 @@ This layer also provides a custom image recipe at:
 
 The image is currently a thin wrapper around `core-image-weston`, so it is
 a good starting point for adding Odoo POS packages and further customizations.
+
+Kiosk mode customization
+========================
+
+This layer now adds a kiosk package at:
+
+  meta-odoo-pos/recipes-graphics/kiosk/odoo-pos-kiosk_1.0.bb
+
+It installs:
+
+- `/etc/xdg/weston/weston.ini` with `kiosk-shell.so`
+- `odoo-pos-kiosk.service` (systemd auto-start)
+- `/usr/bin/odoo-pos-kiosk-launcher.sh`
+- `/usr/share/odoo-pos/kiosk/index.html`
+
+The launcher opens Chromium in kiosk mode pointing to:
+
+  file:///usr/share/odoo-pos/kiosk/index.html
+
+If your Yocto setup does not provide a `chromium` package in current layers,
+replace that package in `odoo-pos-image.bb` with the browser available in your
+build configuration.
+

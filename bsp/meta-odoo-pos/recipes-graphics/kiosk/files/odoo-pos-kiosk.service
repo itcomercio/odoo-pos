@@ -1,0 +1,17 @@
+[Unit]
+Description=Odoo POS Kiosk Browser
+After=weston.service
+Wants=weston.service
+ConditionPathExists=/usr/share/odoo-pos/kiosk/index.html
+
+[Service]
+Type=simple
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=XDG_RUNTIME_DIR=/run
+ExecStart=/usr/bin/odoo-pos-kiosk-launcher.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+
