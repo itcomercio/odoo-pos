@@ -1,0 +1,106 @@
+SUMMARY = "Odoo runtime via OCI container (Podman)"
+DESCRIPTION = "Runs Odoo in a container on top of host PostgreSQL"
+HOMEPAGE = "https://www.odoo.com"
+LICENSE = "MIT"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
+
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+
+SRC_URI = " \
+    file://odoo-container.env \
+    file://odoo.conf \
+    file://odoo-container-launch.sh \
+    file://odoo-container-import.service \
+    file://odoo-container-import.sh \
+    file://odoo.service \
+    file://postgresql-odoo-setup.service \
+    file://postgresql-odoo-setup.sh \
+    file://containers.conf \
+    file://storage.conf \
+"
+
+inherit systemd useradd
+
+S = "${UNPACKDIR}"
+
+USERADD_PACKAGES = "${PN}"
+GROUPADD_PARAM:${PN} = "--system odoo"
+USERADD_PARAM:${PN} = " \
+    --system \
+    --home /var/lib/odoo \
+    --create-home \
+    --shell /bin/false \
+    --gid odoo \
+    odoo \
+"
+
+SYSTEMD_PACKAGES = "${PN}"
+SYSTEMD_SERVICE:${PN} = " \
+    odoo-container-import.service \
+    postgresql-odoo-setup.service \
+    odoo.service \
+"
+SYSTEMD_AUTO_ENABLE:${PN} = "enable"
+
+RDEPENDS:${PN} = " \
+    podman \
+    postgresql \
+    postgresql-server \
+    shadow \
+    bash \
+"
+
+do_configure[noexec] = "1"
+do_compile[noexec] = "1"
+
+do_install() {
+    install -d ${D}${sysconfdir}/odoo
+    install -m 0640 ${UNPACKDIR}/odoo.conf ${D}${sysconfdir}/odoo/odoo.conf
+
+    install -d ${D}${sysconfdir}/default
+    install -m 0644 ${UNPACKDIR}/odoo-container.env ${D}${sysconfdir}/default/odoo-container
+
+    install -d ${D}${bindir}
+    install -m 0755 ${UNPACKDIR}/odoo-container-launch.sh ${D}${bindir}/odoo-container-launch.sh
+
+    install -d ${D}${libexecdir}
+    install -m 0755 ${UNPACKDIR}/odoo-container-import.sh ${D}${libexecdir}/odoo-container-import.sh
+    install -m 0755 ${UNPACKDIR}/postgresql-odoo-setup.sh ${D}${libexecdir}/postgresql-odoo-setup.sh
+
+    install -d ${D}${systemd_system_unitdir}
+    install -m 0644 ${UNPACKDIR}/odoo-container-import.service ${D}${systemd_system_unitdir}/odoo-container-import.service
+    install -m 0644 ${UNPACKDIR}/odoo.service ${D}${systemd_system_unitdir}/odoo.service
+    install -m 0644 ${UNPACKDIR}/postgresql-odoo-setup.service ${D}${systemd_system_unitdir}/postgresql-odoo-setup.service
+
+    install -d ${D}${sysconfdir}/containers
+    install -m 0644 ${UNPACKDIR}/containers.conf ${D}${sysconfdir}/containers/containers.conf
+    install -m 0644 ${UNPACKDIR}/storage.conf ${D}${sysconfdir}/containers/storage.conf
+
+    install -d ${D}${localstatedir}/lib/containers/tmp
+    install -d ${D}${localstatedir}/lib/containers/storage
+
+    install -d ${D}${localstatedir}/lib/odoo
+    install -d ${D}${localstatedir}/lib/odoo/log
+}
+
+pkg_postinst:${PN}() {
+    install -d "$D/var/lib/odoo/log"
+    chown -R odoo:odoo "$D/var/lib/odoo"
+    chown root:odoo "$D/etc/odoo/odoo.conf"
+}
+
+FILES:${PN} += " \
+    ${sysconfdir}/odoo/odoo.conf \
+    ${sysconfdir}/default/odoo-container \
+    ${sysconfdir}/containers/containers.conf \
+    ${sysconfdir}/containers/storage.conf \
+    ${localstatedir}/lib/containers \
+    ${bindir}/odoo-container-launch.sh \
+    ${systemd_system_unitdir}/odoo-container-import.service \
+    ${systemd_system_unitdir}/odoo.service \
+    ${systemd_system_unitdir}/postgresql-odoo-setup.service \
+    ${libexecdir}/odoo-container-import.sh \
+    ${libexecdir}/postgresql-odoo-setup.sh \
+    ${localstatedir}/lib/odoo \
+"
+

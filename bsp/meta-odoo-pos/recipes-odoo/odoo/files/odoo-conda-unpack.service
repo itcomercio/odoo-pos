@@ -1,0 +1,21 @@
+[Unit]
+Description=Initialize Odoo conda environment paths (first boot only)
+Documentation=https://conda.github.io/conda-pack/
+# Must complete before Odoo tries to use the Python environment.
+After=local-fs.target
+Before=odoo.service
+# Condition: skip if the environment has already been unpacked.
+ConditionPathExists=!/opt/odoo-env/.conda-unpacked
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# conda-unpack is bundled inside the conda-pack tarball.
+# It patches all hardcoded absolute paths (RPATHs, shebangs, activation
+# scripts) to match /opt/odoo-env on the target device.
+ExecStart=/opt/odoo-env/bin/conda-unpack
+ExecStartPost=/usr/bin/touch /opt/odoo-env/.conda-unpacked
+
+[Install]
+WantedBy=multi-user.target
+

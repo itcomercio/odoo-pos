@@ -1,0 +1,17 @@
+[Unit]
+Description=Create PostgreSQL role and database for Odoo (first boot)
+Documentation=man:psql(1)
+# Run after PostgreSQL is fully up and its own init oneshot has completed.
+After=postgresql.service
+Requires=postgresql.service
+# Only execute once — when the marker file is absent.
+ConditionPathExists=!/var/lib/postgresql/odoo-db-setup-done
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/postgresql-odoo-setup.sh
+
+[Install]
+WantedBy=multi-user.target
+

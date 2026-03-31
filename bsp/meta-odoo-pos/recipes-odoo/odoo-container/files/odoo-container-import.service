@@ -1,0 +1,15 @@
+[Unit]
+Description=Import Odoo OCI image into local Podman storage
+After=local-fs.target
+Before=odoo.service
+ConditionPathExists=/var/lib/odoo/odoo-container.tar
+ConditionPathExists=!/var/lib/odoo/.odoo-container-imported
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/odoo-container-import.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+

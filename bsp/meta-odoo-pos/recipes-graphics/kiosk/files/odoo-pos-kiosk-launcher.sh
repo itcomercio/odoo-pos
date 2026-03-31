@@ -1,7 +1,12 @@
 #!/bin/sh
 set -eu
 
-URL="file:///usr/share/odoo-pos/kiosk/index.html"
+# Odoo web interface running locally.
+ODOO_HOST="127.0.0.1"
+ODOO_PORT="8069"
+ODOO_URL="http://localhost:${ODOO_PORT}"
+LOCAL_FALLBACK="file:///usr/share/odoo-pos/kiosk/index.html"
+URL=""
 BROWSER=""
 
 for candidate in chromium chromium-browser cog wpewebkit MiniBrowser; do
@@ -16,15 +21,58 @@ if [ -z "$BROWSER" ]; then
     exit 1
 fi
 
+# ── Wait for Odoo HTTP endpoint ───────────────────────────────────────────────
+# Odoo can take a significant time on first boot (database initialisation).
+# We poll the port with a simple TCP connect via Python (always present).
+# Maximum wait: 60 × 5 s = 5 minutes.
+# If Odoo never becomes ready, fall back to the local placeholder page.
+echo "Waiting for Odoo at ${ODOO_URL} ..."
+ODOO_READY=0
+i=0
+while [ "$i" -lt 60 ]; do
+    if python3 -c "
+import socket, sys
+try:
+    s = socket.create_connection(('${ODOO_HOST}', ${ODOO_PORT}), timeout=2)
+    s.close()
+    sys.exit(0)
+except Exception:
+    sys.exit(1)
+" 2>/dev/null; then
+        ODOO_READY=1
+        break
+    fi
+    sleep 5
+    i=$((i + 1))
+done
+
+if [ "$ODOO_READY" -eq 1 ]; then
+    URL="${ODOO_URL}"
+    echo "Odoo ready — launching kiosk browser."
+else
+    URL="${LOCAL_FALLBACK}"
+    echo "WARNING: Odoo did not become ready after 5 minutes; launching browser with local fallback page." >&2
+fi
+
 # Auto-discover the Wayland socket.  Weston may place it in different
 # directories depending on how systemd/logind sets XDG_RUNTIME_DIR:
-#   /run           -> forced by our weston.service drop-in (preferred)
-#   /run/user/0    -> systemd-logind default for root
-#   /tmp           -> fallback used by some embedded configs
+#   /run/user/<weston-uid>  -> systemd-logind default for the weston user
+#   /run/user/0             -> systemd-logind default for root
+#   /run                    -> legacy embedded configs
+#   /tmp                    -> fallback used by some embedded configs
+
+# Build the list of candidate directories dynamically.
+WESTON_UID=$(id -u weston 2>/dev/null || true)
+SEARCH_DIRS=""
+if [ -n "$WESTON_UID" ]; then
+    SEARCH_DIRS="/run/user/${WESTON_UID}"
+fi
+SEARCH_DIRS="${SEARCH_DIRS} /run/user/0 /run /tmp"
+
 SOCKET_FOUND=0
 FOUND_XDG=""
 
-for try_xdg in /run /run/user/0 /tmp; do
+for try_xdg in $SEARCH_DIRS; do
     i=0
     while [ "$i" -lt 20 ]; do
         if [ -S "${try_xdg}/wayland-0" ]; then

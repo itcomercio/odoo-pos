@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: odoo_db
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_USER=odoo
+      # Esto permite que el usuario odoo tenga permisos de superusuario
+      # necesarios para crear bases de datos desde el gestor de Odoo
+      - POSTGRES_INITDB_ARGS=--auth-host=md5
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data
+    restart: always
+
+  odoo:
+    image: localhost/odoo-pos:19.0 # Cambia esto por el nombre de tu imagen local
+    container_name: odoo_app
+    depends_on:
+      - db
+    ports:
+      - "8069:8069"
+      - "8072:8072" # Puerto para longpolling (chat/bus)
+    environment:
+      - HOST=db
+      - USER=odoo
+      - PASSWORD=odoo
+    volumes:
+      - odoo-data:/var/lib/odoo
+      # Si quieres mapear tus addons locales para testear:
+      # - ./extra-addons:/mnt/extra-addons
+    restart: always
+
+volumes:
+  odoo-db-data:
+  odoo-data:

@@ -1,7 +1,10 @@
 [Unit]
 Description=Odoo POS Kiosk Browser
-After=weston.service run-postinsts.service postgresql.service
+After=weston.service run-postinsts.service odoo.service
 Requires=weston.service
+# We want Odoo to be at least attempted before the browser starts.
+# The launcher script does its own readiness polling inside.
+Wants=odoo.service
 PartOf=weston.service
 
 [Service]

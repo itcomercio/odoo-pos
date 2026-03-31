@@ -11,8 +11,12 @@ IMAGE_BASENAME = "odoo-pos-image"
 # Also generate a compressed tar rootfs artifact.
 IMAGE_FSTYPES:append = " tar.zst"
 
-# Include PostgreSQL, bash, kiosk support assets, and Chromium Wayland browser.
-IMAGE_INSTALL:append = " postgresql postgresql-server bash odoo-pos-kiosk chromium-ozone-wayland"
+# Suppress multiple-provider warning for weston-init.
+PREFERRED_RPROVIDER_weston-init = "weston-init"
+
+# Include Odoo container runtime, kiosk browser, and Chromium.
+# odoo-container pulls in: podman, postgresql, postgresql-server, bash, shadow.
+IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container"
 
 # Default root password: odoo
 ROOT_PASSWORD_HASH = "\$6\$c6aQckAX4qXzO1vZ\$.GUniYswCC/RjUB5QCUTxnbM9g0.IhI4wKhtQa/hadwba368xN74WhFC3IhnUVwhk4zyg.J27dU2WZ2S.vsUQ0"

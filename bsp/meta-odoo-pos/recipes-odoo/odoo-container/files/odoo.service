@@ -1,0 +1,17 @@
+[Unit]
+Description=Odoo Application Container
+After=postgresql.service postgresql-odoo-setup.service odoo-container-import.service
+Requires=postgresql.service postgresql-odoo-setup.service odoo-container-import.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/odoo-container-launch.sh
+ExecStop=/usr/bin/podman stop -t 30 odoo
+Restart=always
+RestartSec=5
+TimeoutStartSec=180
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
+

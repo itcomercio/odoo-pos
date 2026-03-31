@@ -1,0 +1,31 @@
+[Unit]
+Description=Odoo Community Edition 19.0
+Documentation=https://www.odoo.com/documentation
+After=postgresql.service postgresql-odoo-setup.service odoo-conda-unpack.service
+Requires=postgresql.service postgresql-odoo-setup.service odoo-conda-unpack.service
+
+[Service]
+Type=simple
+User=odoo
+Group=odoo
+
+Environment="HOME=/home/odoo"
+Environment="PYTHONUNBUFFERED=1"
+# The conda env is self-contained — no PYTHONPATH needed.
+# conda-unpack has already fixed all paths in /opt/odoo-env at first boot.
+
+WorkingDirectory=/opt/odoo
+
+ExecStart=/opt/odoo-env/bin/python /opt/odoo/odoo-bin \
+    --config=/etc/odoo/odoo.conf
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=180
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=odoo
+
+[Install]
+WantedBy=multi-user.target

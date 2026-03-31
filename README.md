@@ -201,3 +201,37 @@ Arranque del sistema instalado:
 cd installer
 ./_04-run-install.sh --boot
 ```
+
+## Flujo recomendado (Yocto + contenedor Odoo)
+
+Para evitar que falte `odoo-image.tar` en el sistema final, el orden recomendado es:
+
+```bash
+cd bsp
+./yocto-bsp.sh --build-odoo-container-image
+./yocto-bsp.sh --build
+```
+
+### Si prefieres hacerlo manual
+
+```bash
+cd bsp
+./yocto-bsp.sh --build-odoo-container-image
+./yocto-bsp.sh --no-build
+source bitbake-builds/poky-master/build/init-build-env
+bitbake -c clean odoo-container odoo-pos-image
+bitbake odoo-pos-image
+```
+
+Comprobaciones utiles:
+
+```bash
+# Host
+ls -lh meta-odoo-pos/recipes-odoo/odoo-container/files/odoo-image.tar
+
+# Target
+ls -lh /usr/share/odoo-container/odoo-image.tar
+systemctl status odoo-image-prepull.service
+systemctl status odoo.service
+```
+

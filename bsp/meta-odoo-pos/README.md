@@ -30,6 +30,16 @@ The distro is based on poky and applies:
 - systemd as init manager
 - sysvinit removal from DISTRO_FEATURES
 - RPM package format (package_rpm)
+- virtualization/seccomp features for container runtime
+
+Additional layer dependency
+===========================
+
+This project now runs Odoo inside a container runtime. The bootstrap script
+also adds:
+
+- `meta-virtualization` (for Podman and related container stack)
+- `meta-browser/meta-chromium` (for kiosk browser)
 
 Build using this distro
 =======================
@@ -60,8 +70,64 @@ This layer also provides a custom image recipe at:
 
   meta-odoo-pos/recipes-core/images/odoo-pos-image.bb
 
-The image is currently a thin wrapper around `core-image-weston`, so it is
-a good starting point for adding Odoo POS packages and further customizations.
+The image wraps `core-image-weston` and adds:
+
+- PostgreSQL server/client
+- kiosk package and Chromium
+- `odoo-container` package (systemd + Podman runtime)
+
+Containerized Odoo runtime
+==========================
+
+Odoo is started via systemd unit `odoo.service`, which launches a Podman
+container and connects to host PostgreSQL.
+
+Recipe:
+
+  meta-odoo-pos/recipes-odoo/odoo-container/odoo-container_1.0.bb
+
+Key runtime files installed by that recipe:
+
+- `/etc/default/odoo-container` (image reference and runtime options)
+- `/etc/odoo/odoo.conf` (Odoo config mounted into container)
+- `/etc/containers/containers.conf` and `/etc/containers/storage.conf` (Podman config)
+- `/usr/bin/odoo-container-launch.sh` (container launcher)
+- `odoo.service` and `postgresql-odoo-setup.service`
+
+Custom Odoo image build pipeline
+================================
+
+This repository also provides a host-side pipeline to build a custom Odoo
+container image from a local Dockerfile and embed it into the Yocto rootfs.
+
+Build context:
+
+  meta-odoo-pos/containers/odoo/<version>/
+
+Integrated host build/export command:
+
+  cd /home/javiroman/HACK/dev/itc-github/public/odoo-pos.git/bsp
+  ./yocto-bsp.sh --build-odoo-container-image
+
+That Yocto bootstrap parameter:
+
+- builds image tag `localhost/odoo-pos:19.0`
+- exports it to:
+
+  meta-odoo-pos/recipes-odoo/odoo-container/files/odoo-image.tar
+
+- generates a Podman storage snapshot for rootfs preinstall:
+
+  meta-odoo-pos/recipes-odoo/odoo-container/files/odoo-storage-vfs.tar.zst
+
+The `odoo-container` recipe installs that storage snapshot directly into
+`/var/lib/containers/storage` in the final rootfs, so `podman images` and
+`podman run` work immediately after boot without any load step.
+`odoo-image.tar` is an intermediate host-side artifact and is not shipped in the rootfs.
+
+You can also combine both steps in one command:
+
+  ./yocto-bsp.sh --build-odoo-container-image --build
 
 Kiosk mode customization
 ========================
@@ -77,9 +143,9 @@ It installs:
 - `/usr/bin/odoo-pos-kiosk-launcher.sh`
 - `/usr/share/odoo-pos/kiosk/index.html`
 
-The launcher opens Chromium in kiosk mode pointing to:
+The launcher opens Chromium in kiosk mode pointing to local Odoo HTTP:
 
-  file:///usr/share/odoo-pos/kiosk/index.html
+  http://localhost:8069
 
 If your Yocto setup does not provide a `chromium` package in current layers,
 replace that package in `odoo-pos-image.bb` with the browser available in your
