@@ -8,9 +8,11 @@ Type=simple
 ExecStart=/usr/bin/odoo-container-launch.sh
 ExecStop=/usr/bin/podman stop -t 30 odoo
 Restart=always
-RestartSec=5
-TimeoutStartSec=180
+RestartSec=10
+TimeoutStartSec=600
 TimeoutStopSec=60
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

@@ -1,9 +1,10 @@
 [Unit]
 Description=Odoo POS Kiosk Browser
-After=weston.service run-postinsts.service odoo.service
+After=weston.service run-postinsts.service
 Requires=weston.service
-# We want Odoo to be at least attempted before the browser starts.
-# The launcher script does its own readiness polling inside.
+# On first boot (podman load), the launcher shows a splash page and waits.
+# On normal boots, it waits briefly for Odoo then launches Chromium directly.
+# We use Wants= (not Requires=) so the kiosk always starts even if Odoo is slow.
 Wants=odoo.service
 PartOf=weston.service
 
@@ -11,7 +12,7 @@ PartOf=weston.service
 Type=simple
 ExecStart=/usr/bin/odoo-pos-kiosk-launcher.sh
 Restart=on-failure
-RestartSec=3
+RestartSec=5
 
 [Install]
 WantedBy=graphical.target

@@ -23,18 +23,17 @@ if ! su -s /bin/sh postgres -c "/usr/bin/pg_isready -q"; then
     exit 1
 fi
 
-echo "Creating PostgreSQL role 'odoo'..."
+echo "Creating PostgreSQL role 'odoo' (with CREATEDB)..."
 su -s /bin/sh postgres -c "psql -tc \
     \"SELECT 1 FROM pg_roles WHERE rolname='odoo'\" \
     | grep -q 1 || \
-    psql -c \"CREATE ROLE odoo WITH LOGIN PASSWORD 'odoo';\""
+    psql -c \"CREATE ROLE odoo WITH LOGIN CREATEDB PASSWORD 'odoo';\""
 
-echo "Creating PostgreSQL database 'odoo'..."
-su -s /bin/sh postgres -c "psql -tc \
-    \"SELECT 1 FROM pg_database WHERE datname='odoo'\" \
-    | grep -q 1 || \
-    psql -c \"CREATE DATABASE odoo OWNER odoo;\""
+# NOTE: The Odoo database itself is NOT created here.
+# Odoo's entrypoint creates and initialises it via /web/database/create,
+# which sets up the full schema, installs base modules, and creates the
+# admin user.  Pre-creating an empty database would conflict with that.
 
-echo "PostgreSQL Odoo setup complete."
+echo "PostgreSQL Odoo role setup complete."
 touch "${MARKER}"
 

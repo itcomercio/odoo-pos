@@ -1,25 +1,87 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Odoo POS Kiosk</title>
+  <title>Odoo POS — Iniciando sistema</title>
   <style>
     :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background: #121212;
-      color: #ffffff;
-      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+      color: #e6edf3;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     }
-    h1 { font-size: clamp(2rem, 6vw, 4rem); }
+    .logo {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 700;
+      letter-spacing: .02em;
+      margin-bottom: .25em;
+    }
+    .logo span { color: #714b67; }
+    .sub {
+      font-size: clamp(1rem, 2.5vw, 1.4rem);
+      color: #8b949e;
+      margin-bottom: 2.5rem;
+    }
+    .spinner {
+      width: 56px; height: 56px;
+      border: 5px solid #30363d;
+      border-top-color: #714b67;
+      border-radius: 50%;
+      animation: spin .9s linear infinite;
+      margin-bottom: 2rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status {
+      font-size: clamp(.95rem, 2vw, 1.15rem);
+      color: #8b949e;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .status .phase {
+      display: block;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: .5; }
+      50%      { opacity: 1; }
+    }
+    .footer {
+      position: fixed;
+      bottom: 1.5rem;
+      font-size: .8rem;
+      color: #484f58;
+    }
   </style>
 </head>
 <body>
-  <h1>Hello Odoo POS</h1>
+  <div class="logo">Odoo <span>POS</span></div>
+  <div class="sub">Punto de Venta</div>
+  <div class="spinner"></div>
+  <div class="status">
+    <span>Preparando el sistema, por favor espere&hellip;</span>
+    <span class="phase" id="phase">Cargando componentes del sistema</span>
+  </div>
+  <div class="footer">Comodoo Digital &mdash; Sistema de punto de venta</div>
+
+  <script>
+    var msgs = [
+      "Cargando componentes del sistema",
+      "Importando servicios de aplicaci\u00f3n",
+      "Inicializando base de datos",
+      "Arrancando servidor Odoo",
+      "Casi listo\u2026",
+    ];
+    var idx = 0;
+    var el = document.getElementById("phase");
+    setInterval(function() { idx = (idx + 1) % msgs.length; el.textContent = msgs[idx]; }, 6000);
+  </script>
 </body>
 </html>
 

@@ -16,7 +16,8 @@ PREFERRED_RPROVIDER_weston-init = "weston-init"
 
 # Include Odoo container runtime, kiosk browser, and Chromium.
 # odoo-container pulls in: podman, postgresql, postgresql-server, bash, shadow.
-IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container"
+# iproute2-ss provides the ss command for network diagnostics (separate subpackage in Yocto).
+IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iproute2 iproute2-ss"
 
 # Default root password: odoo
 ROOT_PASSWORD_HASH = "\$6\$c6aQckAX4qXzO1vZ\$.GUniYswCC/RjUB5QCUTxnbM9g0.IhI4wKhtQa/hadwba368xN74WhFC3IhnUVwhk4zyg.J27dU2WZ2S.vsUQ0"

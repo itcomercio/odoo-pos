@@ -9,7 +9,27 @@ fi
 : "${ODOO_CONTAINER_IMAGE:=localhost/odoo-pos:19.0}"
 : "${ODOO_CONTAINER_NAME:=odoo}"
 
-mkdir -p /var/lib/odoo/log
+# Ensure all Odoo data directories exist on the host volume.
+# The container's odoo user UID may differ from the host's, so we
+# use mode 0777 on first creation.  After the first run Podman's :Z
+# relabels them and Odoo will own them from inside the container.
+for d in /var/lib/odoo /var/lib/odoo/log /var/lib/odoo/sessions /var/lib/odoo/filestore; do
+    if [ ! -d "$d" ]; then
+        mkdir -p "$d"
+        chmod 0777 "$d"
+    fi
+done
+
+# Pre-flight: verify the OCI image was imported successfully.
+if ! podman image exists "${ODOO_CONTAINER_IMAGE}"; then
+    echo "ERROR: Container image ${ODOO_CONTAINER_IMAGE} not found." >&2
+    echo "Check that odoo-container-import.service completed successfully." >&2
+    echo "Available images:" >&2
+    podman images --format "{{.Repository}}:{{.Tag}}" >&2
+    exit 1
+fi
+
+echo "Starting Odoo container '${ODOO_CONTAINER_NAME}' from image '${ODOO_CONTAINER_IMAGE}'"
 
 # Keep host PostgreSQL and container in the same network namespace to simplify
 # DB connectivity (127.0.0.1:5432 from inside container == host PostgreSQL).
