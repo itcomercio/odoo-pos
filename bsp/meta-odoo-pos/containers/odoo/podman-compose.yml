@@ -14,21 +14,20 @@ services:
     restart: always
 
   odoo:
-    image: localhost/odoo-pos:19.0 # Cambia esto por el nombre de tu imagen local
+    image: localhost/odoo-pos:19.0
     container_name: odoo_app
     depends_on:
       - db
     ports:
       - "8069:8069"
-      - "8072:8072" # Puerto para longpolling (chat/bus)
+      - "8072:8072"
     environment:
-      - HOST=db
-      - USER=odoo
-      - PASSWORD=odoo
+      - PGHOST=db
+      - PGUSER=odoo
+      - PGPASSWORD=odoo
+      - ODOO_URL=http://localhost:8069
     volumes:
       - odoo-data:/var/lib/odoo
-      # Si quieres mapear tus addons locales para testear:
-      # - ./extra-addons:/mnt/extra-addons
     restart: always
 
 volumes:

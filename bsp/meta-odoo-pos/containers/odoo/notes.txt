@@ -1,0 +1,6 @@
+podman-compose up
+podman-compose down
+podman volume ls
+podman volume rm odoo_db
+
+
