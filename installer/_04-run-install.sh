@@ -50,7 +50,7 @@ run_early() {
 }
 
 run_boot() {
-    qemu-system-x86_64 -k en-us -hda "$DISK_IMAGE" -m size=8192 -serial stdio
+    qemu-system-x86_64 -k en-us -hda "$DISK_IMAGE" -cpu host --accel kvm -m size=8192 -serial stdio
 }
 
 while [ "$#" -gt 0 ]; do
