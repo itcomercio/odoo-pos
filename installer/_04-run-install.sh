@@ -21,7 +21,9 @@ EOF
 
 run_qcow2() {
     rm -f "$DISK_IMAGE"
-    qemu-img create -f qcow2 "$DISK_IMAGE" 10000M
+    qemu-img create -f qcow2 "$DISK_IMAGE" 50000M
+    # ver el tamaño:
+    # qemu-img info c.img
 }
 
 run_install() {
@@ -48,7 +50,7 @@ run_early() {
 }
 
 run_boot() {
-    qemu-system-x86_64 -k en-us -hda "$DISK_IMAGE" -m size=2048 -serial stdio
+    qemu-system-x86_64 -k en-us -hda "$DISK_IMAGE" -m size=8192 -serial stdio
 }
 
 while [ "$#" -gt 0 ]; do
