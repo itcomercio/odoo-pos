@@ -7,6 +7,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 SRC_URI = " \
+    file://odoo-image.tar;unpack=0 \
     file://odoo-container.env \
     file://odoo.conf \
     file://odoo-container-launch.sh \
@@ -16,12 +17,14 @@ SRC_URI = " \
     file://postgresql-odoo-setup.service \
     file://postgresql-odoo-setup.sh \
     file://containers.conf \
-    file://storage.conf \
 "
 
 inherit systemd useradd
 
 S = "${UNPACKDIR}"
+
+# The OCI image tarball is a pre-built opaque blob; skip QA checks on it.
+INSANE_SKIP:${PN} += "already-stripped"
 
 USERADD_PACKAGES = "${PN}"
 GROUPADD_PARAM:${PN} = "--system odoo"
@@ -72,15 +75,17 @@ do_install() {
     install -m 0644 ${UNPACKDIR}/odoo.service ${D}${systemd_system_unitdir}/odoo.service
     install -m 0644 ${UNPACKDIR}/postgresql-odoo-setup.service ${D}${systemd_system_unitdir}/postgresql-odoo-setup.service
 
-    install -d ${D}${sysconfdir}/containers
-    install -m 0644 ${UNPACKDIR}/containers.conf ${D}${sysconfdir}/containers/containers.conf
-    install -m 0644 ${UNPACKDIR}/storage.conf ${D}${sysconfdir}/containers/storage.conf
+    install -d ${D}${sysconfdir}/containers/containers.conf.d
+    install -m 0644 ${UNPACKDIR}/containers.conf ${D}${sysconfdir}/containers/containers.conf.d/odoo-pos.conf
 
     install -d ${D}${localstatedir}/lib/containers/tmp
     install -d ${D}${localstatedir}/lib/containers/storage
 
     install -d ${D}${localstatedir}/lib/odoo
     install -d ${D}${localstatedir}/lib/odoo/log
+
+    # OCI image tarball — podman load on first boot via odoo-container-import.service.
+    install -m 0644 ${UNPACKDIR}/odoo-image.tar ${D}${localstatedir}/lib/odoo/odoo-container.tar
 }
 
 pkg_postinst:${PN}() {
@@ -92,8 +97,7 @@ pkg_postinst:${PN}() {
 FILES:${PN} += " \
     ${sysconfdir}/odoo/odoo.conf \
     ${sysconfdir}/default/odoo-container \
-    ${sysconfdir}/containers/containers.conf \
-    ${sysconfdir}/containers/storage.conf \
+    ${sysconfdir}/containers/containers.conf.d/odoo-pos.conf \
     ${localstatedir}/lib/containers \
     ${bindir}/odoo-container-launch.sh \
     ${systemd_system_unitdir}/odoo-container-import.service \

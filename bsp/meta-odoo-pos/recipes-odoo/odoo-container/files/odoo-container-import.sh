@@ -32,3 +32,7 @@ podman load -i "${CONTAINER_TAR}"
 
 touch "${IMPORT_MARKER}"
 
+# Free disk space — the tar is no longer needed once loaded into Podman storage.
+echo "Removing ${CONTAINER_TAR} to reclaim disk space"
+rm -f "${CONTAINER_TAR}"
+
