@@ -8,6 +8,8 @@ SRC_URI = " \
     file://odoo-pos-kiosk.service \
     file://odoo-pos-kiosk-launcher.sh \
     file://index.html \
+    file://psplash-systemd-override.conf \
+    file://getty-override.conf \
 "
 
 
@@ -28,6 +30,19 @@ do_install() {
     install -m 0644 ${UNPACKDIR}/weston-kiosk-env.conf \
         ${D}${sysconfdir}/systemd/system/weston.service.d/kiosk-env.conf
 
+    # Disable psplash-systemd automatic quit — the kiosk launcher sends QUIT
+    # to psplash manually so the boot splash stays until Chromium takes over.
+    install -d ${D}${sysconfdir}/systemd/system/psplash-systemd.service.d
+    install -m 0644 ${UNPACKDIR}/psplash-systemd-override.conf \
+        ${D}${sysconfdir}/systemd/system/psplash-systemd.service.d/kiosk-override.conf
+
+    # Disable getty on VT1-VT6 so no login prompt ever appears on screen.
+    for vtnum in 1 2 3 4 5 6; do
+        install -d ${D}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d
+        install -m 0644 ${UNPACKDIR}/getty-override.conf \
+            ${D}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d/kiosk-override.conf
+    done
+
     install -d ${D}${systemd_system_unitdir}
     install -m 0644 ${UNPACKDIR}/odoo-pos-kiosk.service ${D}${systemd_system_unitdir}/odoo-pos-kiosk.service
 
@@ -42,6 +57,13 @@ do_install() {
 
 FILES:${PN} += " \
     ${sysconfdir}/systemd/system/weston.service.d/kiosk-env.conf \
+    ${sysconfdir}/systemd/system/psplash-systemd.service.d/kiosk-override.conf \
+    ${sysconfdir}/systemd/system/getty@tty1.service.d/kiosk-override.conf \
+    ${sysconfdir}/systemd/system/getty@tty2.service.d/kiosk-override.conf \
+    ${sysconfdir}/systemd/system/getty@tty3.service.d/kiosk-override.conf \
+    ${sysconfdir}/systemd/system/getty@tty4.service.d/kiosk-override.conf \
+    ${sysconfdir}/systemd/system/getty@tty5.service.d/kiosk-override.conf \
+    ${sysconfdir}/systemd/system/getty@tty6.service.d/kiosk-override.conf \
     ${systemd_system_unitdir}/odoo-pos-kiosk.service \
     ${bindir}/odoo-pos-kiosk-launcher.sh \
     ${datadir}/odoo-pos/kiosk/index.html \

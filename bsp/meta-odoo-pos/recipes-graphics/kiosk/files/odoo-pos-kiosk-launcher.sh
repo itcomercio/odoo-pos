@@ -90,6 +90,17 @@ mkdir -p "${PROFILE_DIR}"
 
 echo "Wayland socket: ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}"
 
+# ── Helper: dismiss psplash boot splash ────────────────────────────────────────
+# Send QUIT command to psplash via its FIFO just before Chromium takes over
+# the framebuffer.  This ensures no gap between the boot splash and the kiosk UI.
+dismiss_psplash() {
+    local fifo="/run/psplash_fifo"
+    if [ -e "$fifo" ]; then
+        echo "QUIT" > "$fifo" 2>/dev/null || true
+        echo "psplash dismissed"
+    fi
+}
+
 # ── Helper: check if Odoo TCP port is open ────────────────────────────────────
 odoo_is_ready() {
     (echo >/dev/tcp/${ODOO_HOST}/${ODOO_PORT}) 2>/dev/null
@@ -143,6 +154,7 @@ if [ -f "${IMPORT_MARKER}" ]; then
     while [ "$i" -lt "$NORMAL_MAX_WAIT" ]; do
         if odoo_is_ready; then
             echo "Odoo listo — arrancando Chromium apuntando a ${ODOO_URL}"
+            dismiss_psplash
             exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" "$ODOO_URL"
         fi
         sleep "$NORMAL_INTERVAL"
@@ -152,6 +164,7 @@ if [ -f "${IMPORT_MARKER}" ]; then
     # Odoo didn't come up in time — launch with Odoo URL anyway so that
     # Chromium shows its own error/retry page rather than an old splash.
     echo "WARN: Odoo no respondió en $((NORMAL_MAX_WAIT * NORMAL_INTERVAL))s, abriendo Chromium igualmente." >&2
+    dismiss_psplash
     exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" "$ODOO_URL"
 else
     # ── First boot: podman load is running in parallel ────────────────────────
@@ -159,6 +172,9 @@ else
 
     # Launch watcher in background; it will navigate Chromium when Odoo is up.
     odoo_watcher &
+
+    # Dismiss the Yocto boot splash right before Chromium paints the kiosk splash.
+    dismiss_psplash
 
     # Start Chromium immediately with the splash page + DevTools port enabled.
     exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" \
