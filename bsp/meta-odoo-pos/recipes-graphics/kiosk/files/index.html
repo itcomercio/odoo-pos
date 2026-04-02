@@ -29,6 +29,8 @@
       color: #8b949e;
       margin-bottom: 2.5rem;
     }
+
+    /* ── Spinner ─────────────────────────────────────────────────────────── */
     .spinner {
       width: 56px; height: 56px;
       border: 5px solid #30363d;
@@ -36,22 +38,62 @@
       border-radius: 50%;
       animation: spin .9s linear infinite;
       margin-bottom: 2rem;
+      transition: opacity .4s;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner.hidden { opacity: 0; pointer-events: none; }
+
+    /* ── Status block ────────────────────────────────────────────────────── */
     .status {
       font-size: clamp(.95rem, 2vw, 1.15rem);
       color: #8b949e;
       text-align: center;
-      line-height: 1.6;
+      line-height: 2;
+      min-height: 4em;
     }
-    .status .phase {
+    #phase {
       display: block;
-      animation: pulse 2s ease-in-out infinite;
+      transition: color .5s;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: .5; }
-      50%      { opacity: 1; }
+    #attempt {
+      display: block;
+      font-size: .85em;
+      color: #484f58;
+      min-height: 1.4em;
     }
+
+    /* ── Countdown bubble ────────────────────────────────────────────────── */
+    #countdown-wrap {
+      margin-top: 1.8rem;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: .5rem;
+    }
+    #countdown-wrap.visible { display: flex; }
+    #ready-label {
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      font-weight: 600;
+      color: #3fb950;
+    }
+    #counter {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      border: 4px solid #3fb950;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #3fb950;
+      animation: pop .25s ease;
+    }
+    @keyframes pop {
+      0%   { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
     .footer {
       position: fixed;
       bottom: 1.5rem;
@@ -63,24 +105,148 @@
 <body>
   <div class="logo">Odoo <span>POS</span></div>
   <div class="sub">Punto de Venta</div>
-  <div class="spinner"></div>
+
+  <div class="spinner" id="spinner"></div>
+
   <div class="status">
     <span>Preparando el sistema, por favor espere&hellip;</span>
-    <span class="phase" id="phase">Cargando componentes del sistema</span>
+    <span id="phase">Cargando componentes del sistema</span>
+    <span id="attempt"></span>
   </div>
+
+  <div id="countdown-wrap">
+    <span id="ready-label">&#10003;&nbsp; ¡Odoo POS listo!</span>
+    <div id="counter">5</div>
+  </div>
+
   <div class="footer">Comodoo Digital &mdash; Sistema de punto de venta</div>
 
   <script>
-    var msgs = [
-      "Cargando componentes del sistema",
-      "Importando servicios de aplicaci\u00f3n",
-      "Inicializando base de datos",
-      "Arrancando servidor Odoo",
-      "Casi listo\u2026",
+    "use strict";
+
+    /* ── Constants ──────────────────────────────────────────────────────── */
+    var ODOO_URL    = "http://localhost:8069";
+    var HEALTH_URL  = ODOO_URL + "/web/health";
+    var POLL_MS     = 5000;   // poll interval while waiting
+    var COUNTDOWN_S = 5;      // seconds before redirect
+
+    /* ── UI references ──────────────────────────────────────────────────── */
+    var spinner       = document.getElementById("spinner");
+    var phaseEl       = document.getElementById("phase");
+    var attemptEl     = document.getElementById("attempt");
+    var countdownWrap = document.getElementById("countdown-wrap");
+    var counterEl     = document.getElementById("counter");
+
+    /* ── Rotating loading messages ──────────────────────────────────────── */
+    var loadingMsgs = [
+      "Cargando imagen del sistema",
+      "Importando servicios de la aplicaci\u00f3n",
+      "Inicializando la base de datos",
+      "Arrancando el servidor Odoo",
+      "Configurando m\u00f3dulos del punto de venta",
+      "Casi listo\u2026"
     ];
-    var idx = 0;
-    var el = document.getElementById("phase");
-    setInterval(function() { idx = (idx + 1) % msgs.length; el.textContent = msgs[idx]; }, 6000);
+    var msgIdx = 0;
+    var msgTimer = setInterval(function () {
+      msgIdx = (msgIdx + 1) % loadingMsgs.length;
+      phaseEl.textContent = loadingMsgs[msgIdx];
+    }, 7000);
+
+    /* ── Health check ───────────────────────────────────────────────────── */
+    var attempt = 0;
+    var readyTriggered = false;
+
+    function markReady() {
+      if (readyTriggered) {
+        return;
+      }
+      readyTriggered = true;
+      onOdooReady();
+    }
+
+    function bodyLooksHealthy(body) {
+      var text = String(body || "").toLowerCase();
+      return text.indexOf("pass") !== -1 || text.indexOf("ok") !== -1;
+    }
+
+    function checkHealth() {
+      attempt++;
+      attemptEl.textContent = "Comprobando disponibilidad… (intento " + attempt + ")";
+
+      // Strict path: read body and check health markers.
+      fetch(HEALTH_URL, { method: "GET", cache: "no-store" })
+        .then(function (resp) {
+          if (!resp.ok) {
+            attemptEl.textContent = "Servidor respondiendo con estado " + resp.status + ", reintentando…";
+            scheduleNext();
+            return;
+          }
+
+          return resp.text().then(function (body) {
+            if (bodyLooksHealthy(body)) {
+              markReady();
+            } else {
+              attemptEl.textContent = "Servidor respondiendo, esperando inicialización…";
+              scheduleNext();
+            }
+          });
+        })
+        .catch(function () {
+          // file:// + Chromium kiosk can hit CORS for localhost even when endpoint is 200.
+          // Fallback to connectivity probe with no-cors: if it resolves, backend is reachable.
+          fetch(HEALTH_URL, { method: "GET", mode: "no-cors", cache: "no-store" })
+            .then(function () {
+              attemptEl.textContent = "Servicio disponible (modo compatibilidad), continuando…";
+              markReady();
+            })
+            .catch(function () {
+              attemptEl.textContent = "Servicio no disponible aún, reintentando…";
+              scheduleNext();
+            });
+        });
+    }
+
+    function scheduleNext() {
+      if (readyTriggered) {
+        return;
+      }
+      setTimeout(checkHealth, POLL_MS);
+    }
+
+    /* ── Called once Odoo is confirmed healthy ──────────────────────────── */
+    function onOdooReady() {
+      /* Stop rotating messages & spinner */
+      clearInterval(msgTimer);
+      spinner.classList.add("hidden");
+
+      /* Update status text */
+      phaseEl.style.color = "#3fb950";
+      phaseEl.textContent = "Sistema listo";
+      attemptEl.textContent = "Conectando con Odoo POS\u2026";
+
+      /* Show countdown */
+      countdownWrap.classList.add("visible");
+      var count = COUNTDOWN_S;
+      counterEl.textContent = count;
+
+      var tick = setInterval(function () {
+        count--;
+        /* Re-trigger pop animation */
+        counterEl.style.animation = "none";
+        counterEl.offsetHeight;           /* reflow */
+        counterEl.style.animation = "pop .25s ease";
+        counterEl.textContent = count;
+
+        if (count <= 0) {
+          clearInterval(tick);
+          attemptEl.textContent = "";
+          window.location.href = ODOO_URL;
+        }
+      }, 1000);
+    }
+
+    /* ── Start polling ──────────────────────────────────────────────────── */
+    checkHealth();
   </script>
 </body>
 </html>

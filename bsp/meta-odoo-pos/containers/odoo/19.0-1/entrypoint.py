@@ -28,8 +28,15 @@ ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'adm')
 MASTER_PASSWORD = os.getenv('MASTER_PASSWORD', 'miadminpasswordodoo')
 
 ODOO_URL = os.getenv('ODOO_URL', 'http://localhost:8069')
-AUTH_ENDPOINT = f"{ODOO_URL}/web/session/authenticate"
-DB_CREATE_ENDPOINT = f"{ODOO_URL}/web/database/create"
+
+# Puerto exclusivo para el proceso Odoo temporal de inicialización.
+# Hardcodeado intencionalmente: no debe ser accesible desde el exterior
+# durante la fase de arranque/inicialización de la base de datos.
+INIT_HTTP_PORT = "18069"
+INIT_ODOO_URL = f"http://localhost:{INIT_HTTP_PORT}"
+
+AUTH_ENDPOINT = f"{INIT_ODOO_URL}/web/session/authenticate"
+DB_CREATE_ENDPOINT = f"{INIT_ODOO_URL}/web/database/create"
 
 def print(*args, **kwargs):
     # Asegura que flush=True esté siempre presente
@@ -137,7 +144,7 @@ def initialize_db_via_api():
         raise
 
 def run_odoo():
-    print("Arrancando proceso Odoo temporal (inicializacion)...")
+    print(f"Arrancando proceso Odoo temporal (inicializacion) en puerto interno {INIT_HTTP_PORT}...")
 
     process = subprocess.Popen([
         '/odoo/odoo-bin',
@@ -145,26 +152,26 @@ def run_odoo():
         '--db_port', DB_PORT,
         '--db_user', DB_USER,
         '--db_password', DB_PASSWORD,
-        '--http-port', HTTP_PORT,
+        '--http-port', INIT_HTTP_PORT,
         '--without-demo', 'True',
         '--addons-path', '/odoo/addons,/home/odoo/.local/custom_addons'
     ],
     cwd="/odoo"
     )
 
-    print(f"\nEsperamos a que Odoo esté disponible por HTTP, intentos -> {MAX_INIT_RETRIES} ...")
+    print(f"\nEsperamos a que Odoo esté disponible en {INIT_ODOO_URL}/web/health, intentos -> {MAX_INIT_RETRIES} ...")
     for i in range(MAX_INIT_RETRIES):
         try:
-            print(f"\nIntentando {ODOO_URL} ...")
-            r = requests.get(f"{ODOO_URL}")
-            if r.status_code == 200:
-                print("Odoo levantado y escuchando HTTP.")
+            print(f"\nIntentando {INIT_ODOO_URL}/web/health ...")
+            r = requests.get(f"{INIT_ODOO_URL}/web/health", timeout=8)
+            if r.status_code == 200 and "pass" in r.text:
+                print(f"Odoo temporal levantado y saludable en puerto {INIT_HTTP_PORT}.")
                 return process
         except Exception:
             pass
         time.sleep(INIT_DELAY)
 
-    print("Odoo no está accesible por HTTP después de varios intentos.")
+    print("Odoo temporal no está accesible por HTTP después de varios intentos.")
     process.terminate()
     process.wait()
     exit(1)

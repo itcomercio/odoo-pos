@@ -6,18 +6,23 @@ services:
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=odoo
       - POSTGRES_USER=odoo
-      # Esto permite que el usuario odoo tenga permisos de superusuario
-      # necesarios para crear bases de datos desde el gestor de Odoo
       - POSTGRES_INITDB_ARGS=--auth-host=md5
     volumes:
       - odoo-db-data:/var/lib/postgresql/data
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   odoo:
     image: localhost/odoo-pos:19.0
     container_name: odoo_app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8069:8069"
       - "8072:8072"
@@ -29,6 +34,12 @@ services:
     volumes:
       - odoo-data:/var/lib/odoo
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --timeout=5 http://localhost:8069/web/health | grep -q '\"pass\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 volumes:
   odoo-db-data:

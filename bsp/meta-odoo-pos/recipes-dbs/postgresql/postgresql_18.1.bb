@@ -27,6 +27,15 @@ do_configure() {
     oe_runconf
 }
 
+# Build contrib modules required by Odoo after the main build.
+# The build is out-of-tree (${B} != ${S}), so top_builddir must point to ${B}.
+#   pg_trgm  — trigram similarity search (required by Odoo)
+#   unaccent — accent-insensitive search (used by Odoo; important for Spanish)
+do_compile:append() {
+    oe_runmake -C ${S}/contrib/pg_trgm   top_builddir=${B}
+    oe_runmake -C ${S}/contrib/unaccent  top_builddir=${B}
+}
+
 USERADD_PACKAGES = "${PN}"
 USERADD_PARAM:${PN} = "--system --home /var/lib/postgresql --no-create-home --shell /bin/false postgres"
 
@@ -64,6 +73,10 @@ do_install:append() {
 
     install -d ${D}/var/lib/postgresql/data
     chmod 0700 ${D}/var/lib/postgresql/data
+
+    # Install contrib modules required by Odoo
+    oe_runmake -C ${S}/contrib/pg_trgm  top_builddir=${B} DESTDIR=${D} install
+    oe_runmake -C ${S}/contrib/unaccent top_builddir=${B} DESTDIR=${D} install
 }
 
 FILES:${PN} += " \
@@ -71,4 +84,8 @@ FILES:${PN} += " \
     ${systemd_system_unitdir}/postgresql-initdb.service \
     ${libexecdir}/postgresql-initdb.sh \
     /var/lib/postgresql \
+    ${libdir}/postgresql/pg_trgm.so \
+    ${libdir}/postgresql/unaccent.so \
+    ${datadir}/postgresql/extension/pg_trgm* \
+    ${datadir}/postgresql/extension/unaccent* \
 "

@@ -86,6 +86,27 @@ do_install() {
 
     # OCI image tarball — podman load on first boot via odoo-container-import.service.
     install -m 0644 ${UNPACKDIR}/odoo-image.tar ${D}${localstatedir}/lib/odoo/odoo-container.tar
+
+    # Disable selected Podman user units via preset (do not mask), so
+    # systemctl preset-all in do_rootfs does not error out on masked units.
+    install -d ${D}${libdir}/systemd/user-preset
+    cat > ${D}${libdir}/systemd/user-preset/90-odoo-pos.preset << 'EOF'
+# Odoo POS: avoid slow Podman user-unit startup path on normal boots
+# (we run Odoo via system unit odoo.service).
+disable podman-auto-update.service
+disable podman-auto-update.timer
+disable podman-clean-transient.service
+disable podman-restart.service
+disable podman.service
+disable podman.socket
+EOF
+
+    # Disable ofono system service by preset (do not mask), so preset-all
+    # can process units cleanly during rootfs creation.
+    install -d ${D}${libdir}/systemd/system-preset
+    cat > ${D}${libdir}/systemd/system-preset/90-odoo-pos-system.preset << 'EOF'
+disable ofono.service
+EOF
 }
 
 pkg_postinst:${PN}() {
@@ -106,5 +127,6 @@ FILES:${PN} += " \
     ${libexecdir}/odoo-container-import.sh \
     ${libexecdir}/postgresql-odoo-setup.sh \
     ${localstatedir}/lib/odoo \
+    ${libdir}/systemd/user-preset/90-odoo-pos.preset \
+    ${libdir}/systemd/system-preset/90-odoo-pos-system.preset \
 "
-

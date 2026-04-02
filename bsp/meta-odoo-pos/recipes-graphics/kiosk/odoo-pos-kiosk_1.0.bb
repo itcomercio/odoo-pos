@@ -10,6 +10,7 @@ SRC_URI = " \
     file://index.html \
     file://psplash-systemd-override.conf \
     file://getty-override.conf \
+    file://chromium-policy.json \
 "
 
 
@@ -52,6 +53,16 @@ do_install() {
     install -d ${D}${datadir}/odoo-pos/kiosk
     install -m 0644 ${UNPACKDIR}/index.html ${D}${datadir}/odoo-pos/kiosk/index.html
 
+    # Chromium managed policy: disable translation UI and credential-save prompts.
+    install -d ${D}${sysconfdir}/chromium/policies/managed
+    install -m 0644 ${UNPACKDIR}/chromium-policy.json \
+        ${D}${sysconfdir}/chromium/policies/managed/odoo-pos.json
+
+    # Compatibility path used by some Chromium builds/wrappers.
+    install -d ${D}${sysconfdir}/chromium-browser/policies/managed
+    install -m 0644 ${UNPACKDIR}/chromium-policy.json \
+        ${D}${sysconfdir}/chromium-browser/policies/managed/odoo-pos.json
+
     install -d ${D}/var/lib/odoo-pos/chromium-profile
 }
 
@@ -67,6 +78,7 @@ FILES:${PN} += " \
     ${systemd_system_unitdir}/odoo-pos-kiosk.service \
     ${bindir}/odoo-pos-kiosk-launcher.sh \
     ${datadir}/odoo-pos/kiosk/index.html \
+    ${sysconfdir}/chromium/policies/managed/odoo-pos.json \
+    ${sysconfdir}/chromium-browser/policies/managed/odoo-pos.json \
     /var/lib/odoo-pos/chromium-profile \
 "
-
