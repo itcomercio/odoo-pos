@@ -10,6 +10,7 @@ SRC_URI = "https://ftp.postgresql.org/pub/source/v${PV}/postgresql-${PV}.tar.bz2
            file://postgresql.service \
            file://postgresql-initdb.service \
            file://postgresql-initdb.sh \
+           file://postgresql-odoo-tuning.conf \
 "
 SRC_URI[sha256sum] = "ff86675c336c46e98ac991ebb306d1b67621ece1d06787beaade312c2c915d54"
 
@@ -77,12 +78,19 @@ do_install:append() {
     # Install contrib modules required by Odoo
     oe_runmake -C ${S}/contrib/pg_trgm  top_builddir=${B} DESTDIR=${D} install
     oe_runmake -C ${S}/contrib/unaccent top_builddir=${B} DESTDIR=${D} install
+
+    # Install Odoo-recommended tuning snippet; postgresql-initdb.sh will place it
+    # into PGDATA/conf.d/ and activate it via include_dir on first boot.
+    install -d ${D}${sysconfdir}/postgresql
+    install -m 0644 ${UNPACKDIR}/postgresql-odoo-tuning.conf \
+        ${D}${sysconfdir}/postgresql/odoo-tuning.conf
 }
 
 FILES:${PN} += " \
     ${systemd_system_unitdir}/postgresql.service \
     ${systemd_system_unitdir}/postgresql-initdb.service \
     ${libexecdir}/postgresql-initdb.sh \
+    ${sysconfdir}/postgresql/odoo-tuning.conf \
     /var/lib/postgresql \
     ${libdir}/postgresql/pg_trgm.so \
     ${libdir}/postgresql/unaccent.so \

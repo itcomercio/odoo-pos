@@ -37,8 +37,11 @@ do_install() {
     install -m 0644 ${UNPACKDIR}/psplash-systemd-override.conf \
         ${D}${sysconfdir}/systemd/system/psplash-systemd.service.d/kiosk-override.conf
 
-    # Disable getty on VT1-VT6 so no login prompt ever appears on screen.
-    for vtnum in 1 2 3 4 5 6; do
+    # Disable getty on VT1 (Weston) and VT3-VT6 (unused).
+    # VT2 (TTY2) is intentionally left active as maintenance terminal:
+    #   Ctrl+Alt+F2  →  login shell (all services keep running)
+    #   Ctrl+Alt+F1  →  back to Weston / Chromium kiosk
+    for vtnum in 1 3 4 5 6; do
         install -d ${D}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d
         install -m 0644 ${UNPACKDIR}/getty-override.conf \
             ${D}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d/kiosk-override.conf
@@ -70,7 +73,6 @@ FILES:${PN} += " \
     ${sysconfdir}/systemd/system/weston.service.d/kiosk-env.conf \
     ${sysconfdir}/systemd/system/psplash-systemd.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty1.service.d/kiosk-override.conf \
-    ${sysconfdir}/systemd/system/getty@tty2.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty3.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty4.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty5.service.d/kiosk-override.conf \
