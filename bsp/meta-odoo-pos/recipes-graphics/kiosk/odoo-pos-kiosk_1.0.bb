@@ -1,5 +1,5 @@
 SUMMARY = "Odoo POS kiosk startup assets"
-DESCRIPTION = "Weston kiosk configuration and auto-start browser launcher"
+DESCRIPTION = "Weston kiosk configuration and auto-start Chromium browser launcher"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
@@ -13,7 +13,6 @@ SRC_URI = " \
     file://chromium-policy.json \
 "
 
-
 inherit systemd
 
 S = "${UNPACKDIR}"
@@ -22,7 +21,8 @@ SYSTEMD_PACKAGES = "${PN}"
 SYSTEMD_SERVICE:${PN} = "odoo-pos-kiosk.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 
-RDEPENDS:${PN} += "bash weston weston-init"
+# Chromium-only kiosk (no WPE, no cog variable logic)
+RDEPENDS:${PN} += "bash weston weston-init chromium-ozone-wayland"
 
 do_install() {
     # Drop-in to force a stable XDG_RUNTIME_DIR=/run for the weston.service unit,
@@ -46,6 +46,13 @@ do_install() {
         install -m 0644 ${UNPACKDIR}/getty-override.conf \
             ${D}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d/kiosk-override.conf
     done
+
+    # Explicitly enable getty on VT2 so Ctrl+Alt+F2 always gives a login shell.
+    # The base image only enables tty1 by default; we disable tty1 above, so we
+    # must create the want-symlink for tty2 ourselves.
+    install -d ${D}${sysconfdir}/systemd/system/getty.target.wants
+    ln -sf /lib/systemd/system/getty@.service \
+        ${D}${sysconfdir}/systemd/system/getty.target.wants/getty@tty2.service
 
     install -d ${D}${systemd_system_unitdir}
     install -m 0644 ${UNPACKDIR}/odoo-pos-kiosk.service ${D}${systemd_system_unitdir}/odoo-pos-kiosk.service
@@ -77,6 +84,7 @@ FILES:${PN} += " \
     ${sysconfdir}/systemd/system/getty@tty4.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty5.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty6.service.d/kiosk-override.conf \
+    ${sysconfdir}/systemd/system/getty.target.wants/getty@tty2.service \
     ${systemd_system_unitdir}/odoo-pos-kiosk.service \
     ${bindir}/odoo-pos-kiosk-launcher.sh \
     ${datadir}/odoo-pos/kiosk/index.html \

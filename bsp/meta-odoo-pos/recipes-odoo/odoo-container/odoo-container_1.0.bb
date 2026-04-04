@@ -101,11 +101,14 @@ disable podman.service
 disable podman.socket
 EOF
 
-    # Disable ofono system service by preset (do not mask), so preset-all
+    # Disable unused system services by preset (do not mask), so preset-all
     # can process units cleanly during rootfs creation.
     install -d ${D}${libdir}/systemd/system-preset
     cat > ${D}${libdir}/systemd/system-preset/90-odoo-pos-system.preset << 'EOF'
+# Odoo POS: disable unused telephony and RPC bind services.
 disable ofono.service
+disable rpcbind.service
+disable rpcbind.socket
 EOF
 }
 
