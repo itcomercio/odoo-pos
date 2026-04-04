@@ -253,14 +253,29 @@ def prepare_custom_addons_path(custom_path):
 
 def mark_db_initialized():
     """
-    Crea el fichero marcador para que arranques posteriores omitan la inicialización.
-    Falla ruidosamente (no silenciosamente) si no puede escribir el fichero.
+    Intenta crear el fichero marcador para que arranques posteriores
+    omitan la inicialización.
+
+    Nota: en algunos despliegues /var/lib/odoo puede estar montado con
+    permisos/UID distintos al usuario del contenedor. En ese caso no debemos
+    bloquear el arranque si la base ya está inicializada: el marcador pasa a
+    ser una optimización, no un requisito de seguridad/consistencia.
     """
     marker_dir = os.path.dirname(DB_INIT_MARKER)
-    os.makedirs(marker_dir, exist_ok=True)
-    with open(DB_INIT_MARKER, 'w') as f:
-        f.write("ok\n")
-    print(f"✅ Marcador de inicialización creado: {DB_INIT_MARKER}")
+    try:
+        os.makedirs(marker_dir, exist_ok=True)
+        with open(DB_INIT_MARKER, 'w') as f:
+            f.write("ok\n")
+        print(f"✅ Marcador de inicialización creado: {DB_INIT_MARKER}")
+        return True
+    except PermissionError as e:
+        print(f"⚠️ No se pudo crear marcador en {DB_INIT_MARKER} por permisos: {e}")
+        print("⚠️ Se continúa sin marcador; la detección de DB inicializada seguirá por PostgreSQL.")
+        return False
+    except Exception as e:
+        print(f"⚠️ No se pudo crear marcador en {DB_INIT_MARKER}: {e}")
+        print("⚠️ Se continúa sin marcador; la detección de DB inicializada seguirá por PostgreSQL.")
+        return False
 
 def is_first_boot():
     return not os.path.exists(DB_INIT_MARKER)
@@ -318,7 +333,7 @@ if __name__ == '__main__':
         # fue recreado pero el volumen persistente tiene los datos).
         if db_exists() and db_schema_initialized():
             print("La DB ya existe y tiene esquema Odoo. "
-                  "Creando marcador y arrancando directamente.")
+                  "Intentando crear marcador y arrancando directamente.")
             mark_db_initialized()
             exec_odoo()
 
@@ -356,12 +371,9 @@ if __name__ == '__main__':
         odoo_proc.terminate()
         odoo_proc.wait()
 
-        mark_db_initialized()
-
-        # Verificar que el marcador realmente se creó antes de continuar
-        if not os.path.exists(DB_INIT_MARKER):
-            print(f"❌ CRÍTICO: El marcador {DB_INIT_MARKER} no se pudo crear. Abortando.")
-            sys.exit(1)
+        marker_created = mark_db_initialized()
+        if not marker_created:
+            print("⚠️ Arranque continuará sin marcador persistente (DB ya verificada).")
 
         # ── 4. Arrancar Odoo definitivo ────────────────────────────────────────
         exec_odoo()

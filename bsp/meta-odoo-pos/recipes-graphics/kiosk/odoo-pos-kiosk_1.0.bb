@@ -9,6 +9,7 @@ SRC_URI = " \
     file://odoo-pos-kiosk-launcher.sh \
     file://index.html \
     file://psplash-systemd-override.conf \
+    file://psplash-progress-helper.sh \
     file://getty-override.conf \
     file://chromium-policy.json \
 "
@@ -31,34 +32,26 @@ do_install() {
     install -m 0644 ${UNPACKDIR}/weston-kiosk-env.conf \
         ${D}${sysconfdir}/systemd/system/weston.service.d/kiosk-env.conf
 
-    # Disable psplash-systemd automatic quit — the kiosk launcher sends QUIT
-    # to psplash manually so the boot splash stays until Chromium takes over.
+    # Override psplash-systemd helper so we keep systemd-driven progress updates
+    # without sending QUIT automatically at 100%.
     install -d ${D}${sysconfdir}/systemd/system/psplash-systemd.service.d
     install -m 0644 ${UNPACKDIR}/psplash-systemd-override.conf \
         ${D}${sysconfdir}/systemd/system/psplash-systemd.service.d/kiosk-override.conf
 
-    # Disable getty on VT1 (Weston) and VT3-VT6 (unused).
-    # VT2 (TTY2) is intentionally left active as maintenance terminal:
-    #   Ctrl+Alt+F2  →  login shell (all services keep running)
-    #   Ctrl+Alt+F1  →  back to Weston / Chromium kiosk
-    for vtnum in 1 3 4 5 6; do
+    # Disable getty on all local virtual terminals (VT1-VT6).
+    # This prevents login prompts from appearing before Weston/Chromium.
+    for vtnum in 1 2 3 4 5 6; do
         install -d ${D}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d
         install -m 0644 ${UNPACKDIR}/getty-override.conf \
             ${D}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d/kiosk-override.conf
     done
-
-    # Explicitly enable getty on VT2 so Ctrl+Alt+F2 always gives a login shell.
-    # The base image only enables tty1 by default; we disable tty1 above, so we
-    # must create the want-symlink for tty2 ourselves.
-    install -d ${D}${sysconfdir}/systemd/system/getty.target.wants
-    ln -sf /lib/systemd/system/getty@.service \
-        ${D}${sysconfdir}/systemd/system/getty.target.wants/getty@tty2.service
 
     install -d ${D}${systemd_system_unitdir}
     install -m 0644 ${UNPACKDIR}/odoo-pos-kiosk.service ${D}${systemd_system_unitdir}/odoo-pos-kiosk.service
 
     install -d ${D}${bindir}
     install -m 0755 ${UNPACKDIR}/odoo-pos-kiosk-launcher.sh ${D}${bindir}/odoo-pos-kiosk-launcher.sh
+    install -m 0755 ${UNPACKDIR}/psplash-progress-helper.sh ${D}${bindir}/psplash-progress-helper.sh
 
     install -d ${D}${datadir}/odoo-pos/kiosk
     install -m 0644 ${UNPACKDIR}/index.html ${D}${datadir}/odoo-pos/kiosk/index.html
@@ -80,13 +73,14 @@ FILES:${PN} += " \
     ${sysconfdir}/systemd/system/weston.service.d/kiosk-env.conf \
     ${sysconfdir}/systemd/system/psplash-systemd.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty1.service.d/kiosk-override.conf \
+    ${sysconfdir}/systemd/system/getty@tty2.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty3.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty4.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty5.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty6.service.d/kiosk-override.conf \
-    ${sysconfdir}/systemd/system/getty.target.wants/getty@tty2.service \
     ${systemd_system_unitdir}/odoo-pos-kiosk.service \
     ${bindir}/odoo-pos-kiosk-launcher.sh \
+    ${bindir}/psplash-progress-helper.sh \
     ${datadir}/odoo-pos/kiosk/index.html \
     ${sysconfdir}/chromium/policies/managed/odoo-pos.json \
     ${sysconfdir}/chromium-browser/policies/managed/odoo-pos.json \
