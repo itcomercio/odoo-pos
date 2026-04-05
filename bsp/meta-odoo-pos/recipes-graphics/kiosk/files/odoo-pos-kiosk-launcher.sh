@@ -45,6 +45,17 @@ export LANG="es_ES.UTF-8"
 export LANGUAGE="es_ES:es"
 export LC_MESSAGES="es_ES.UTF-8"
 
+# ── Ensure DBus is properly configured (system bus).
+# This reduces noise and prevents Chromium from trying alternative DBus paths.
+export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/run/dbus/system_bus_socket"
+
+# ── Clean profile on every boot to avoid corruption/cache issues ────────────────
+# (Chromium retains state from previous runs which can cause render failures).
+if [ -d "${PROFILE_DIR}" ]; then
+    rm -rf "${PROFILE_DIR}"
+fi
+mkdir -p "${PROFILE_DIR}"
+
 # ── Common Chromium flags ─────────────────────────────────────────────────────
 CHROMIUM_FLAGS=(
     --kiosk
@@ -58,7 +69,17 @@ CHROMIUM_FLAGS=(
     --enable-features=UseOzonePlatform
     --disable-background-networking
     --disable-component-update
-    --disable-dev-shm-usage
+    --disable-component-cloud-policy
+    --disable-gcm
+    --disable-session-crashed-bubble
+    --disable-notifications
+    --check-for-update-interval=31536000
+    --log-level=3
+    # Disable GPU rendering: more stable in VM/Wayland environments.
+    # If hardware acceleration is needed later, remove this flag and add:
+    #   --enable-gpu --use-vulkan=native
+    --disable-gpu
+    --disable-software-rasterizer
     # Extra safety: suppress translation and password-manager UI even if policy
     # loading is delayed/failed on first profile startup.
     --disable-features=MediaRouter,Translate,AutofillServerCommunication,OptimizationHints,OnDeviceModel,TranslateUI,PasswordManagerOnboarding,PasswordManagerEnableUPM,PasswordManagerSignInPromo
@@ -103,7 +124,6 @@ fi
 export XDG_RUNTIME_DIR="${FOUND_XDG}"
 export WAYLAND_DISPLAY="wayland-0"
 unset DBUS_SESSION_BUS_ADDRESS DBUS_STARTER_ADDRESS DBUS_STARTER_BUS_TYPE
-mkdir -p "${PROFILE_DIR}"
 
 echo "Wayland socket: ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}"
 

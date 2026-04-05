@@ -10,14 +10,11 @@ fi
 : "${ODOO_CONTAINER_NAME:=odoo}"
 
 # Ensure all Odoo data directories exist on the host volume.
-# The container's odoo user UID may differ from the host's, so we
-# use mode 0777 on first creation.  After the first run Podman's :Z
-# relabels them and Odoo will own them from inside the container.
+# Always enforce write permissions because the directory may already exist
+# from previous installs with restrictive ownership/mode on the host.
 for d in /var/lib/odoo /var/lib/odoo/log /var/lib/odoo/sessions /var/lib/odoo/filestore; do
-    if [ ! -d "$d" ]; then
-        mkdir -p "$d"
-        chmod 0777 "$d"
-    fi
+    mkdir -p "$d"
+    chmod 0777 "$d"
 done
 
 # Pre-flight: verify the OCI image was imported successfully.
@@ -51,4 +48,3 @@ exec podman run --rm --replace \
     -e ADMIN_PASSWORD=adm \
     -e MASTER_PASSWORD=miadminpasswordodoo \
     "${ODOO_CONTAINER_IMAGE}"
-

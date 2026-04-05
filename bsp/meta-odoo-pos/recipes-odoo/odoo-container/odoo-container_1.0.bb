@@ -105,10 +105,20 @@ EOF
     # can process units cleanly during rootfs creation.
     install -d ${D}${libdir}/systemd/system-preset
     cat > ${D}${libdir}/systemd/system-preset/90-odoo-pos-system.preset << 'EOF'
-# Odoo POS: disable unused telephony and RPC bind services.
+# Odoo POS: disable services not needed in the kiosk appliance profile.
 disable ofono.service
 disable rpcbind.service
 disable rpcbind.socket
+disable podman.service
+disable podman.socket
+disable avahi-daemon.service
+disable bluetooth.service
+disable neard.service
+disable systemd-networkd-wait-online.service
+disable busybox-klogd.service
+disable busybox-syslog.service
+disable ip6tables.service
+disable iptables.service
 EOF
 }
 

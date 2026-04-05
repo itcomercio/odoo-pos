@@ -35,6 +35,12 @@ ODOO_URL = os.getenv('ODOO_URL', 'http://localhost:8069')
 # Si existe se omite toda la fase de inicialización y Odoo arranca directamente.
 DB_INIT_MARKER = os.getenv('DB_INIT_MARKER', '/var/lib/odoo/.db-initialized')
 
+# Fallbacks para escenarios donde /var/lib/odoo raíz no es escribible por el
+# usuario del contenedor (bind-mount con permisos host estrictos).
+DB_INIT_MARKER_FALLBACKS = [
+    '/var/lib/odoo/sessions/.db-initialized',
+    '/tmp/.db-initialized',
+]
 # Puerto exclusivo para el proceso Odoo temporal de inicialización.
 # Hardcodeado intencionalmente: no debe ser accesible desde el exterior
 # durante la fase de arranque/inicialización de la base de datos.
@@ -251,34 +257,46 @@ def prepare_custom_addons_path(custom_path):
             f.write(manifest_content)
         print(f"Módulo dummy creado con éxito en {module_dir}")
 
+def marker_candidates():
+    """Devuelve rutas de marcador (primaria + fallbacks), sin duplicados."""
+    candidates = [DB_INIT_MARKER] + DB_INIT_MARKER_FALLBACKS
+    unique = []
+    for path in candidates:
+        if path and path not in unique:
+            unique.append(path)
+    return unique
+
 def mark_db_initialized():
     """
     Intenta crear el fichero marcador para que arranques posteriores
     omitan la inicialización.
 
-    Nota: en algunos despliegues /var/lib/odoo puede estar montado con
-    permisos/UID distintos al usuario del contenedor. En ese caso no debemos
-    bloquear el arranque si la base ya está inicializada: el marcador pasa a
-    ser una optimización, no un requisito de seguridad/consistencia.
+    Devuelve True si se creó en alguna ruta candidata.
+    Devuelve False si no fue posible escribir ningún marcador.
     """
-    marker_dir = os.path.dirname(DB_INIT_MARKER)
-    try:
-        os.makedirs(marker_dir, exist_ok=True)
-        with open(DB_INIT_MARKER, 'w') as f:
-            f.write("ok\n")
-        print(f"✅ Marcador de inicialización creado: {DB_INIT_MARKER}")
-        return True
-    except PermissionError as e:
-        print(f"⚠️ No se pudo crear marcador en {DB_INIT_MARKER} por permisos: {e}")
-        print("⚠️ Se continúa sin marcador; la detección de DB inicializada seguirá por PostgreSQL.")
-        return False
-    except Exception as e:
-        print(f"⚠️ No se pudo crear marcador en {DB_INIT_MARKER}: {e}")
-        print("⚠️ Se continúa sin marcador; la detección de DB inicializada seguirá por PostgreSQL.")
-        return False
+    for marker_path in marker_candidates():
+        marker_dir = os.path.dirname(marker_path)
+        try:
+            os.makedirs(marker_dir, exist_ok=True)
+            with open(marker_path, 'w') as f:
+                f.write("ok\n")
+            print(f"✅ Marcador de inicialización creado: {marker_path}")
+            return True
+        except PermissionError as e:
+            print(f"⚠️ Sin permisos para crear marcador en {marker_path}: {e}")
+        except Exception as e:
+            print(f"⚠️ Falló creación de marcador en {marker_path}: {e}")
+
+    print("⚠️ No se pudo crear ningún marcador persistente; se continuará con detección por PostgreSQL.")
+    return False
+
 
 def is_first_boot():
-    return not os.path.exists(DB_INIT_MARKER)
+    # Si existe cualquier marcador válido, se considera arranque normal.
+    for marker_path in marker_candidates():
+        if os.path.exists(marker_path):
+            return False
+    return True
 
 def exec_odoo():
     print("Sustituyendo intérprete Python por Odoo (os.execvp)...")
