@@ -5,7 +5,9 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 SRC_URI = " \
     file://weston-kiosk-env.conf \
+    file://weston-readiness.conf \
     file://odoo-pos-kiosk.service \
+    file://odoo-pos-kiosk-wait-wayland.conf \
     file://odoo-pos-kiosk-launcher.sh \
     file://index.html \
     file://psplash-systemd-override.conf \
@@ -23,7 +25,7 @@ SYSTEMD_SERVICE:${PN} = "odoo-pos-kiosk.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 
 # Chromium-only kiosk (no WPE, no cog variable logic)
-RDEPENDS:${PN} += "bash weston weston-init chromium-ozone-wayland"
+RDEPENDS:${PN} += "bash weston weston-init chromium-ozone-wayland seatd"
 
 do_install() {
     # Drop-in to force a stable XDG_RUNTIME_DIR=/run for the weston.service unit,
@@ -31,6 +33,12 @@ do_install() {
     install -d ${D}${sysconfdir}/systemd/system/weston.service.d
     install -m 0644 ${UNPACKDIR}/weston-kiosk-env.conf \
         ${D}${sysconfdir}/systemd/system/weston.service.d/kiosk-env.conf
+    install -m 0644 ${UNPACKDIR}/weston-readiness.conf \
+        ${D}${sysconfdir}/systemd/system/weston.service.d/10-readiness.conf
+
+    install -d ${D}${sysconfdir}/systemd/system/odoo-pos-kiosk.service.d
+    install -m 0644 ${UNPACKDIR}/odoo-pos-kiosk-wait-wayland.conf \
+        ${D}${sysconfdir}/systemd/system/odoo-pos-kiosk.service.d/10-wait-wayland.conf
 
     # Override psplash-systemd helper so we keep systemd-driven progress updates
     # without sending QUIT automatically at 100%.
@@ -38,13 +46,11 @@ do_install() {
     install -m 0644 ${UNPACKDIR}/psplash-systemd-override.conf \
         ${D}${sysconfdir}/systemd/system/psplash-systemd.service.d/kiosk-override.conf
 
-    # Disable getty on all local virtual terminals (VT1-VT6).
-    # This prevents login prompts from appearing before Weston/Chromium.
-    for vtnum in 1 2 3 4 5 6; do
-        install -d ${D}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d
-        install -m 0644 ${UNPACKDIR}/getty-override.conf \
-            ${D}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d/kiosk-override.conf
-    done
+    # Disable getty only on VT1, reserved for Weston/kiosk.
+    # Keep tty2+ available for maintenance virtual terminals.
+    install -d ${D}${sysconfdir}/systemd/system/getty@tty1.service.d
+    install -m 0644 ${UNPACKDIR}/getty-override.conf \
+        ${D}${sysconfdir}/systemd/system/getty@tty1.service.d/kiosk-override.conf
 
     install -d ${D}${systemd_system_unitdir}
     install -m 0644 ${UNPACKDIR}/odoo-pos-kiosk.service ${D}${systemd_system_unitdir}/odoo-pos-kiosk.service
@@ -71,13 +77,10 @@ do_install() {
 
 FILES:${PN} += " \
     ${sysconfdir}/systemd/system/weston.service.d/kiosk-env.conf \
+    ${sysconfdir}/systemd/system/weston.service.d/10-readiness.conf \
+    ${sysconfdir}/systemd/system/odoo-pos-kiosk.service.d/10-wait-wayland.conf \
     ${sysconfdir}/systemd/system/psplash-systemd.service.d/kiosk-override.conf \
     ${sysconfdir}/systemd/system/getty@tty1.service.d/kiosk-override.conf \
-    ${sysconfdir}/systemd/system/getty@tty2.service.d/kiosk-override.conf \
-    ${sysconfdir}/systemd/system/getty@tty3.service.d/kiosk-override.conf \
-    ${sysconfdir}/systemd/system/getty@tty4.service.d/kiosk-override.conf \
-    ${sysconfdir}/systemd/system/getty@tty5.service.d/kiosk-override.conf \
-    ${sysconfdir}/systemd/system/getty@tty6.service.d/kiosk-override.conf \
     ${systemd_system_unitdir}/odoo-pos-kiosk.service \
     ${bindir}/odoo-pos-kiosk-launcher.sh \
     ${bindir}/psplash-progress-helper.sh \

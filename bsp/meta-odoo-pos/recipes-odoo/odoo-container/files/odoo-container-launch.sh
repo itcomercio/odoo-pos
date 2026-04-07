@@ -8,6 +8,7 @@ fi
 
 : "${ODOO_CONTAINER_IMAGE:=localhost/odoo-pos:19.0}"
 : "${ODOO_CONTAINER_NAME:=odoo}"
+: "${ODOO_LIMIT_TIME_REAL:=900}"
 
 # Ensure all Odoo data directories exist on the host volume.
 # Always enforce write permissions because the directory may already exist
@@ -41,6 +42,7 @@ exec podman run --rm --replace \
     -e PGPASSWORD=odoo \
     -e DB_NAME=odoo \
     -e HTTP_PORT=8069 \
+    -e ODOO_LIMIT_TIME_REAL="${ODOO_LIMIT_TIME_REAL}" \
     -e ODOO_URL=http://127.0.0.1:8069 \
     -e ODOO_CONFIG=/etc/odoo/odoo.conf \
     -e ODOO_DATA_DIR=/var/lib/odoo \

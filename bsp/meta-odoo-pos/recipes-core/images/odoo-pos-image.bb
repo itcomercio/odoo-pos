@@ -66,6 +66,13 @@ disable_unused_pos_services() {
     # systemd-networkd installs wait-online via network-online.target.wants.
     # Remove it explicitly to avoid boot delays on the kiosk.
     rm -f "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service"
+
+    # Keep VT1 reserved for kiosk, but ensure maintenance VT works on tty2.
+    # Also delete stale kiosk overrides from older builds for tty2+.
+    for vtnum in 2 3 4 5 6; do
+        rm -f "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d/kiosk-override.conf"
+    done
+    systemctl --root="${IMAGE_ROOTFS}" enable getty@tty2.service >/dev/null 2>&1 || true
 }
 ROOTFS_POSTPROCESS_COMMAND:append = " disable_unused_pos_services;"
 
