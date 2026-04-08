@@ -1,24 +1,17 @@
 #!/bin/bash
 set -eu
 
-# ── Configuration ─────────────────────────────────────────────────────────────
-ODOO_HOST="127.0.0.1"
 ODOO_PORT="8069"
 ODOO_URL="http://localhost:${ODOO_PORT}"
 LOCAL_SPLASH="file:///usr/share/odoo-pos/kiosk/index.html"
 DEVTOOLS_PORT="9222"
 PROFILE_DIR="/var/lib/odoo-pos/chromium-profile"
-
-# Marker created by odoo-container-import.sh after a successful podman load.
-# If it exists the heavy first-boot import is already done.
 IMPORT_MARKER="/var/lib/odoo/.odoo-container-imported"
 
-# First boot: 720 × 5s = 60 min (podman load + Odoo DB init).
-# Normal boot: 120 × 2s =  4 min (just Odoo startup).
-FIRST_BOOT_MAX_WAIT=720
 FIRST_BOOT_INTERVAL=5
-NORMAL_MAX_WAIT=120
 NORMAL_INTERVAL=2
+FIRST_BOOT_MAX_TRIES=720
+NORMAL_MAX_TRIES=300
 
 # ── Detect browser ────────────────────────────────────────────────────────────
 BROWSER=""
@@ -39,11 +32,14 @@ if [ -x /usr/lib/chromium/chromium-bin ]; then
     CHROMIUM_BIN="/usr/lib/chromium/chromium-bin"
 fi
 
-# ── Force Spanish locale for Chromium and its utility subprocesses.
-# Keep LANGUAGE as a priority chain for fallback.
-export LANG="es_ES.UTF-8"
+# Prefer Spanish locale when generated on image; otherwise keep a valid UTF-8
+# locale to avoid startup warnings in logs.
+if locale -a 2>/dev/null | grep -qi '^es_ES\.utf\?8$'; then
+    export LANG="es_ES.UTF-8"
+else
+    export LANG="C.UTF-8"
+fi
 export LANGUAGE="es_ES:es"
-export LC_MESSAGES="es_ES.UTF-8"
 
 # ── Ensure DBus is properly configured (system bus).
 # This reduces noise and prevents Chromium from trying alternative DBus paths.
@@ -183,76 +179,57 @@ navigate_to() {
     return 1
 }
 
-# ── Background watcher (first boot only): fallback poller via shell ───────────
-# The splash page JavaScript is the primary mechanism: it polls /web/health
-# directly from the browser and navigates when Odoo is ready.
-# This shell watcher acts as a safety net in case the JS fetch is blocked
-# (e.g. by browser security policy).  It uses the same /web/health endpoint
-# and the DevTools API to close the splash tab and open Odoo in its place.
+# Background watcher used on every boot. It is the authoritative path that
+# moves Chromium from local splash to Odoo when backend is really healthy.
 odoo_watcher() {
-    echo "Watcher (fallback): esperando a que Odoo responda en ${ODOO_URL}/web/health ..."
+    local interval max_tries
+    if [ -f "${IMPORT_MARKER}" ]; then
+        interval="${NORMAL_INTERVAL}"
+        max_tries="${NORMAL_MAX_TRIES}"
+        echo "Watcher: arranque normal, esperando Odoo..."
+    else
+        interval="${FIRST_BOOT_INTERVAL}"
+        max_tries="${FIRST_BOOT_MAX_TRIES}"
+        echo "Watcher: primer arranque, esperando import + Odoo..."
+    fi
+
     local i=0
-    while [ "$i" -lt "$FIRST_BOOT_MAX_WAIT" ]; do
+    while :; do
         if odoo_is_ready; then
-            echo "Watcher: Odoo saludable — intentando navegar Chromium a ${ODOO_URL}"
-            # Retry navigation up to 5 times (DevTools may not be ready yet)
+            echo "Watcher: Odoo saludable, navegando Chromium a ${ODOO_URL}"
             local nav_try=0
             while [ "$nav_try" -lt 5 ]; do
                 if navigate_to "${ODOO_URL}"; then
-                    echo "Watcher: Chromium navegado a Odoo correctamente."
+                    echo "Watcher: navegador conmutado a Odoo."
                     return 0
                 fi
-                echo "Watcher: intento de navegación $((nav_try + 1)) fallido, reintentando en 5s..." >&2
+                echo "Watcher: intento de navegación $((nav_try + 1)) fallido, reintentando..." >&2
                 sleep 5
                 nav_try=$((nav_try + 1))
             done
-            echo "Watcher: no se pudo navegar Chromium tras 5 intentos." >&2
-            return 1
+            # Keep polling: if DevTools was temporarily unavailable, retry later.
         fi
-        sleep "$FIRST_BOOT_INTERVAL"
+
+        sleep "${interval}"
         i=$((i + 1))
+
+        if [ "$i" -eq "$max_tries" ]; then
+            echo "Watcher: Odoo sigue sin estar listo; continúo en modo espera." >&2
+            interval=10
+        fi
     done
-    echo "Watcher: Odoo no respondió tras $((FIRST_BOOT_MAX_WAIT * FIRST_BOOT_INTERVAL))s." >&2
-    return 1
 }
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  MAIN: decide between first-boot (splash + watcher) and normal boot (direct).
-# ══════════════════════════════════════════════════════════════════════════════
-
-if [ -f "${IMPORT_MARKER}" ]; then
-    # ── Normal boot: container already imported ───────────────────────────────
-    # Poll Odoo via real HTTP until it serves valid HTML (or timeout).
-    echo "Arranque normal — esperando a Odoo via HTTP (max $((NORMAL_MAX_WAIT * NORMAL_INTERVAL))s) ..."
-    i=0
-    while [ "$i" -lt "$NORMAL_MAX_WAIT" ]; do
-        if odoo_is_ready; then
-            echo "Odoo responde con HTML válido — arrancando Chromium en ${ODOO_URL}"
-            dismiss_psplash
-            exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" "$ODOO_URL"
-        fi
-        sleep "$NORMAL_INTERVAL"
-        i=$((i + 1))
-    done
-
-    # Odoo didn't come up in time — open Chromium pointing at Odoo anyway
-    # so the user sees Chromium's own retry/error page.
-    echo "WARN: Odoo no respondió con HTML en $((NORMAL_MAX_WAIT * NORMAL_INTERVAL))s, abriendo Chromium igualmente." >&2
+if odoo_is_ready; then
+    echo "Odoo ya está listo, iniciando Chromium directamente."
     dismiss_psplash
     exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" "$ODOO_URL"
-else
-    # ── First boot: podman load is running in parallel ────────────────────────
-    echo "Primer arranque detectado — mostrando splash mientras se carga el sistema"
-
-    # Launch watcher in background; it will navigate Chromium when Odoo is up.
-    odoo_watcher &
-
-    # Dismiss the Yocto boot splash right before Chromium paints the kiosk splash.
-    dismiss_psplash
-
-    # Start Chromium immediately with the splash page + DevTools port enabled.
-    exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" \
-        --remote-debugging-port="${DEVTOOLS_PORT}" \
-        "$LOCAL_SPLASH"
 fi
+
+echo "Odoo aún no está listo; mostrando splash local hasta disponibilidad."
+odoo_watcher &
+dismiss_psplash
+exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" \
+    --remote-debugging-port="${DEVTOOLS_PORT}" \
+    "$LOCAL_SPLASH"
 

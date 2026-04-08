@@ -31,10 +31,16 @@ fi
 
 echo "Starting Odoo container '${ODOO_CONTAINER_NAME}' from image '${ODOO_CONTAINER_IMAGE}'"
 
+if podman container exists "${ODOO_CONTAINER_NAME}"; then
+    echo "Reusing existing container '${ODOO_CONTAINER_NAME}'"
+    exec podman start -a "${ODOO_CONTAINER_NAME}"
+fi
+
 # Keep host PostgreSQL and container in the same network namespace to simplify
 # DB connectivity (127.0.0.1:5432 from inside container == host PostgreSQL).
-exec podman run --rm --replace \
+exec podman run \
     --name "${ODOO_CONTAINER_NAME}" \
+    --pull=never \
     --network host \
     -v /var/lib/odoo:/var/lib/odoo:Z \
     -v /etc/odoo/odoo.conf:/etc/odoo/odoo.conf:ro,Z \

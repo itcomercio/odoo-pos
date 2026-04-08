@@ -47,6 +47,7 @@ SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 
 RDEPENDS:${PN} = " \
     podman \
+    fuse-overlayfs \
     postgresql \
     postgresql-server \
     shadow \

@@ -67,12 +67,27 @@ disable_unused_pos_services() {
     # Remove it explicitly to avoid boot delays on the kiosk.
     rm -f "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service"
 
-    # Keep VT1 reserved for kiosk, but ensure maintenance VT works on tty2.
-    # Also delete stale kiosk overrides from older builds for tty2+.
-    for vtnum in 2 3 4 5 6; do
+    # Kiosk profile: keep tty1 reserved for Weston/Chromium to avoid visible
+    # login flashes, but preserve local maintenance access on tty2.
+    systemctl --root="${IMAGE_ROOTFS}" disable "getty@tty1.service" >/dev/null 2>&1 || true
+    rm -f "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/getty@tty1.service.d/kiosk-override.conf"
+
+    systemctl --root="${IMAGE_ROOTFS}" enable "getty@tty2.service" >/dev/null 2>&1 || true
+    install -d "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/getty@tty2.service.d"
+    cat > "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/getty@tty2.service.d/kiosk-delay.conf" << 'EOF'
+[Unit]
+After=weston.service odoo-pos-kiosk.service
+
+[Service]
+ExecStartPre=
+ExecStartPre=/bin/sleep 15
+EOF
+
+    # Disable extra VTs; tty2 remains available for offline diagnostics.
+    for vtnum in 3 4 5 6; do
+        systemctl --root="${IMAGE_ROOTFS}" disable "getty@tty${vtnum}.service" >/dev/null 2>&1 || true
         rm -f "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/getty@tty${vtnum}.service.d/kiosk-override.conf"
     done
-    systemctl --root="${IMAGE_ROOTFS}" enable getty@tty2.service >/dev/null 2>&1 || true
 }
 ROOTFS_POSTPROCESS_COMMAND:append = " disable_unused_pos_services;"
 
