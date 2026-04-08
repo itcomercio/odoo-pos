@@ -24,6 +24,8 @@ DB_PASSWORD = os.getenv('PGPASSWORD', 'odoo')
 DB_NAME = os.getenv('DB_NAME', 'odoo')
 HTTP_PORT = os.getenv('HTTP_PORT', '8069')
 ODOO_LIMIT_TIME_REAL = os.getenv('ODOO_LIMIT_TIME_REAL', '900')
+ODOO_LIMIT_MEMORY_SOFT = os.getenv('ODOO_LIMIT_MEMORY_SOFT', '2147483648')
+ODOO_LIMIT_MEMORY_HARD = os.getenv('ODOO_LIMIT_MEMORY_HARD', '2684354560')
 
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'odoo@example.com')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'adm')
@@ -193,6 +195,8 @@ def run_odoo():
         '--db_password', DB_PASSWORD,
         '--http-port', INIT_HTTP_PORT,
         '--limit-time-real', ODOO_LIMIT_TIME_REAL,
+        '--limit-memory-soft', ODOO_LIMIT_MEMORY_SOFT,
+        '--limit-memory-hard', ODOO_LIMIT_MEMORY_HARD,
         '--without-demo', 'True',
         '--addons-path', '/odoo/addons,/home/odoo/.local/custom_addons',
     ], cwd="/odoo")
@@ -320,6 +324,8 @@ def exec_odoo():
         "-d", DB_NAME,
         '--http-port', HTTP_PORT,
         '--limit-time-real', ODOO_LIMIT_TIME_REAL,
+        '--limit-memory-soft', ODOO_LIMIT_MEMORY_SOFT,
+        '--limit-memory-hard', ODOO_LIMIT_MEMORY_HARD,
         '--without-demo', 'True',
         '--addons-path', '/odoo/addons,/home/odoo/.local/custom_addons',
         '--no-database-list',
