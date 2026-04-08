@@ -1,17 +1,8 @@
 #!/bin/bash
 set -eu
 
-ODOO_PORT="8069"
-ODOO_URL="http://localhost:${ODOO_PORT}"
 LOCAL_SPLASH="file:///usr/share/odoo-pos/kiosk/index.html"
-DEVTOOLS_PORT="9222"
 PROFILE_DIR="/var/lib/odoo-pos/chromium-profile"
-IMPORT_MARKER="/var/lib/odoo/.odoo-container-imported"
-
-FIRST_BOOT_INTERVAL=5
-NORMAL_INTERVAL=2
-FIRST_BOOT_MAX_TRIES=720
-NORMAL_MAX_TRIES=300
 
 # ── Detect browser ────────────────────────────────────────────────────────────
 BROWSER=""
@@ -124,8 +115,8 @@ unset DBUS_SESSION_BUS_ADDRESS DBUS_STARTER_ADDRESS DBUS_STARTER_BUS_TYPE
 echo "Wayland socket: ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}"
 
 # ── Helper: dismiss psplash boot splash ────────────────────────────────────────
-# Send QUIT command to psplash via its FIFO just before Chromium takes over
-# the framebuffer.  This ensures no gap between the boot splash and the kiosk UI.
+# Send QUIT command to psplash via its FIFO once Chromium has had a moment to
+# paint the local splash page, minimizing any visible gap during hand-off.
 dismiss_psplash() {
     local fifo="/run/psplash_fifo"
     if [ -e "$fifo" ]; then
@@ -134,102 +125,11 @@ dismiss_psplash() {
     fi
 }
 
-# ── Helper: check if Odoo is truly serving via its health endpoint ────────────
-# Uses the official Odoo healthcheck endpoint (available since Odoo 14):
-#   GET /web/health  →  HTTP 200  +  {"status": "pass"}
-# This is lightweight, language-agnostic, and designed for this exact purpose.
-odoo_is_ready() {
-    local body
-    body=$(wget -qO- --timeout=8 --tries=1 \
-        "${ODOO_URL}/web/health" 2>/dev/null) || return 1
-    echo "$body" | grep -Eqi 'pass|ok' || return 1
-    return 0
-}
-
-# ── Helper: navigate Chromium to a new URL via DevTools HTTP API ──────────────
-# Strategy: close the current splash tab, then open a new tab at the target URL.
-# This avoids the need for the WebSocket protocol.
-navigate_to() {
-    local url="$1"
-    local tab_info tab_id
-
-    # Give DevTools a moment to be ready
+echo "Iniciando Chromium con splash local persistente; la página gestionará /web/health."
+(
     sleep 2
-
-    tab_info=$(wget -qO- --timeout=5 --tries=1 \
-        "http://127.0.0.1:${DEVTOOLS_PORT}/json" 2>/dev/null) || return 1
-
-    # Extract the first tab id (the splash tab)
-    tab_id=$(echo "$tab_info" \
-        | sed -n 's/.*"id" *: *"\([^"]*\)".*/\1/p' | head -1)
-
-    # Close the existing tab (best-effort)
-    if [ -n "$tab_id" ]; then
-        wget -qO- --timeout=5 --tries=1 \
-            "http://127.0.0.1:${DEVTOOLS_PORT}/json/close/${tab_id}" \
-            >/dev/null 2>&1 || true
-        sleep 1
-    fi
-
-    # Open a new tab pointing at Odoo; DevTools will make it the active tab
-    wget -qO- --timeout=5 --tries=1 \
-        "http://127.0.0.1:${DEVTOOLS_PORT}/json/new?${url}" \
-        >/dev/null 2>&1 && return 0
-
-    return 1
-}
-
-# Background watcher used on every boot. It is the authoritative path that
-# moves Chromium from local splash to Odoo when backend is really healthy.
-odoo_watcher() {
-    local interval max_tries
-    if [ -f "${IMPORT_MARKER}" ]; then
-        interval="${NORMAL_INTERVAL}"
-        max_tries="${NORMAL_MAX_TRIES}"
-        echo "Watcher: arranque normal, esperando Odoo..."
-    else
-        interval="${FIRST_BOOT_INTERVAL}"
-        max_tries="${FIRST_BOOT_MAX_TRIES}"
-        echo "Watcher: primer arranque, esperando import + Odoo..."
-    fi
-
-    local i=0
-    while :; do
-        if odoo_is_ready; then
-            echo "Watcher: Odoo saludable, navegando Chromium a ${ODOO_URL}"
-            local nav_try=0
-            while [ "$nav_try" -lt 5 ]; do
-                if navigate_to "${ODOO_URL}"; then
-                    echo "Watcher: navegador conmutado a Odoo."
-                    return 0
-                fi
-                echo "Watcher: intento de navegación $((nav_try + 1)) fallido, reintentando..." >&2
-                sleep 5
-                nav_try=$((nav_try + 1))
-            done
-            # Keep polling: if DevTools was temporarily unavailable, retry later.
-        fi
-
-        sleep "${interval}"
-        i=$((i + 1))
-
-        if [ "$i" -eq "$max_tries" ]; then
-            echo "Watcher: Odoo sigue sin estar listo; continúo en modo espera." >&2
-            interval=10
-        fi
-    done
-}
-
-if odoo_is_ready; then
-    echo "Odoo ya está listo, iniciando Chromium directamente."
     dismiss_psplash
-    exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" "$ODOO_URL"
-fi
+) &
 
-echo "Odoo aún no está listo; mostrando splash local hasta disponibilidad."
-odoo_watcher &
-dismiss_psplash
-exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" \
-    --remote-debugging-port="${DEVTOOLS_PORT}" \
-    "$LOCAL_SPLASH"
+exec "$CHROMIUM_BIN" "${CHROMIUM_FLAGS[@]}" "$LOCAL_SPLASH"
 

@@ -2,8 +2,8 @@
 Description=Odoo POS Kiosk Browser
 After=weston.service run-postinsts.service
 Requires=weston.service
-# On first boot (podman load), the launcher shows a splash page and waits.
-# On normal boots, it waits briefly for Odoo then launches Chromium directly.
+# Chromium always starts on the local splash page; the page polls /web/health
+# and performs the final redirect itself when Odoo is ready.
 # We use Wants= (not Requires=) so the kiosk always starts even if Odoo is slow.
 Wants=odoo.service
 PartOf=weston.service

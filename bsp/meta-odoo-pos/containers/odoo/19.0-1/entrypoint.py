@@ -24,6 +24,7 @@ DB_PASSWORD = os.getenv('PGPASSWORD', 'odoo')
 DB_NAME = os.getenv('DB_NAME', 'odoo')
 HTTP_PORT = os.getenv('HTTP_PORT', '8069')
 ODOO_LIMIT_TIME_REAL = os.getenv('ODOO_LIMIT_TIME_REAL', '900')
+ODOO_WORKERS = os.getenv('ODOO_WORKERS', '3')
 ODOO_LIMIT_MEMORY_SOFT = os.getenv('ODOO_LIMIT_MEMORY_SOFT', '2147483648')
 ODOO_LIMIT_MEMORY_HARD = os.getenv('ODOO_LIMIT_MEMORY_HARD', '2684354560')
 
@@ -189,6 +190,7 @@ def run_odoo():
     print(f"Arrancando proceso Odoo temporal en puerto interno {INIT_HTTP_PORT}...")
     process = subprocess.Popen([
         '/odoo/odoo-bin',
+        '--config', '/dev/null',
         '--db_host', DB_HOST,
         '--db_port', DB_PORT,
         '--db_user', DB_USER,
@@ -197,6 +199,7 @@ def run_odoo():
         '--limit-time-real', ODOO_LIMIT_TIME_REAL,
         '--limit-memory-soft', ODOO_LIMIT_MEMORY_SOFT,
         '--limit-memory-hard', ODOO_LIMIT_MEMORY_HARD,
+        '--workers', '0',
         '--without-demo', 'True',
         '--addons-path', '/odoo/addons,/home/odoo/.local/custom_addons',
     ], cwd="/odoo")
@@ -317,6 +320,7 @@ def exec_odoo():
 
     os.execvp("/odoo/odoo-bin", [
         "/odoo/odoo-bin",
+        '--config', '/dev/null',
         "--db_host", DB_HOST,
         "--db_port", DB_PORT,
         "--db_user", DB_USER,
@@ -326,6 +330,7 @@ def exec_odoo():
         '--limit-time-real', ODOO_LIMIT_TIME_REAL,
         '--limit-memory-soft', ODOO_LIMIT_MEMORY_SOFT,
         '--limit-memory-hard', ODOO_LIMIT_MEMORY_HARD,
+        '--workers', ODOO_WORKERS,
         '--without-demo', 'True',
         '--addons-path', '/odoo/addons,/home/odoo/.local/custom_addons',
         '--no-database-list',

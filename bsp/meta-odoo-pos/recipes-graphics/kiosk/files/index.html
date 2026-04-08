@@ -9,84 +9,266 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       min-height: 100vh;
+      position: relative;
+      overflow: hidden;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+      padding: 3rem;
+      background:
+        radial-gradient(circle at top left, rgba(113, 75, 103, .34), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(80, 227, 194, .12), transparent 28%),
+        linear-gradient(135deg, #0d1117 0%, #111827 45%, #161b22 100%);
       color: #e6edf3;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     }
-    .logo {
-      font-size: clamp(2.5rem, 6vw, 4.5rem);
-      font-weight: 700;
-      letter-spacing: .02em;
-      margin-bottom: .25em;
+    .ambient {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(24px);
+      opacity: .65;
+      pointer-events: none;
     }
-    .logo span { color: #714b67; }
+    .ambient-a {
+      inset: 8% auto auto 6%;
+      width: 22rem;
+      height: 22rem;
+      background: rgba(113, 75, 103, .18);
+    }
+    .ambient-b {
+      inset: auto 8% 10% auto;
+      width: 26rem;
+      height: 26rem;
+      background: rgba(59, 130, 246, .12);
+    }
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      width: min(1080px, 100%);
+      display: grid;
+      grid-template-columns: minmax(320px, 1.1fr) minmax(360px, .95fr);
+      gap: 2rem;
+      align-items: stretch;
+    }
+    .brand-panel,
+    .status-panel {
+      border: 1px solid rgba(255, 255, 255, .09);
+      background: rgba(13, 17, 23, .72);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .28);
+      backdrop-filter: blur(10px);
+    }
+    .brand-panel {
+      border-radius: 28px;
+      padding: clamp(2rem, 4vw, 3.2rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 520px;
+      background:
+        linear-gradient(160deg, rgba(113, 75, 103, .16), rgba(13, 17, 23, .55) 35%),
+        rgba(13, 17, 23, .82);
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
+      width: fit-content;
+      padding: .48rem .9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(113, 75, 103, .42);
+      background: rgba(113, 75, 103, .14);
+      color: #d8bfd2;
+      font-size: .82rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .eyebrow-dot {
+      width: .55rem;
+      height: .55rem;
+      border-radius: 50%;
+      background: #875a7b;
+      box-shadow: 0 0 0 6px rgba(135, 90, 123, .16);
+    }
+    .logo {
+      font-size: clamp(3rem, 6vw, 5.4rem);
+      font-weight: 780;
+      letter-spacing: -.04em;
+      line-height: .95;
+      margin-bottom: .55rem;
+    }
+    .logo span {
+      display: inline-block;
+      color: #875a7b;
+      text-shadow: 0 8px 30px rgba(135, 90, 123, .34);
+    }
     .sub {
-      font-size: clamp(1rem, 2.5vw, 1.4rem);
+      font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+      color: #c9d1d9;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+    .lead {
+      max-width: 30rem;
+      font-size: 1.02rem;
+      line-height: 1.75;
       color: #8b949e;
-      margin-bottom: 2.5rem;
+    }
+    .brand-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      margin-top: 2rem;
+    }
+    .pill {
+      padding: .7rem 1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.035);
+      color: #c9d1d9;
+      font-size: .94rem;
+    }
+    .brand-signature {
+      display: flex;
+      flex-direction: column;
+      gap: .45rem;
+      margin-top: 2.5rem;
+      color: #8b949e;
+    }
+    .brand-signature strong {
+      color: #e6edf3;
+      font-size: 1.02rem;
+      font-weight: 600;
+    }
+
+    /* ── Status card ─────────────────────────────────────────────────────── */
+    .status-panel {
+      border-radius: 24px;
+      padding: clamp(1.6rem, 3vw, 2.3rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 520px;
+    }
+    .status-card-label {
+      color: #8b949e;
+      font-size: .8rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .status-title {
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
+      line-height: 1.1;
+      margin-bottom: .85rem;
+      color: #f0f6fc;
+    }
+    .status-lead {
+      color: #9da7b1;
+      line-height: 1.7;
+      margin-bottom: 1.8rem;
+    }
+    .progress-rail {
+      position: relative;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.06);
+      margin-bottom: 2rem;
+    }
+    .progress-rail::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 35%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #875a7b 0%, #a96d98 100%);
+      animation: railMove 1.6s ease-in-out infinite;
+    }
+    @keyframes railMove {
+      0% { transform: translateX(-110%); }
+      100% { transform: translateX(320%); }
     }
 
     /* ── Spinner ─────────────────────────────────────────────────────────── */
     .spinner {
-      width: 56px; height: 56px;
+      width: 64px; height: 64px;
       border: 5px solid #30363d;
-      border-top-color: #714b67;
+      border-top-color: #875a7b;
       border-radius: 50%;
       animation: spin .9s linear infinite;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       transition: opacity .4s;
+      box-shadow: 0 0 28px rgba(135, 90, 123, .16);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner.hidden { opacity: 0; pointer-events: none; }
 
     /* ── Status block ────────────────────────────────────────────────────── */
     .status {
-      font-size: clamp(.95rem, 2vw, 1.15rem);
+      font-size: clamp(.98rem, 2vw, 1.14rem);
       color: #8b949e;
-      text-align: center;
-      line-height: 2;
-      min-height: 4em;
+      text-align: left;
+      line-height: 1.85;
+      min-height: 6.4em;
+    }
+    .status-intro {
+      display: block;
+      color: #c9d1d9;
+      font-weight: 600;
+      margin-bottom: .2rem;
     }
     #phase {
       display: block;
+      color: #d0d7de;
+      font-size: 1.05em;
+      font-weight: 500;
       transition: color .5s;
     }
     #attempt {
       display: block;
-      font-size: .85em;
-      color: #484f58;
+      font-size: .88em;
+      color: #7d8590;
       min-height: 1.4em;
+      margin-top: .2rem;
     }
 
     /* ── Countdown bubble ────────────────────────────────────────────────── */
     #countdown-wrap {
-      margin-top: 1.8rem;
+      margin-top: 2rem;
       display: none;
       flex-direction: column;
-      align-items: center;
-      gap: .5rem;
+      align-items: flex-start;
+      gap: .7rem;
     }
     #countdown-wrap.visible { display: flex; }
     #ready-label {
-      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      font-size: clamp(1.12rem, 2.5vw, 1.45rem);
       font-weight: 600;
       color: #3fb950;
     }
+    .countdown-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
     #counter {
-      width: 72px; height: 72px;
+      width: 78px; height: 78px;
       border-radius: 50%;
       border: 4px solid #3fb950;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2.2rem;
+      font-size: 2.3rem;
       font-weight: 700;
       color: #3fb950;
+      background: rgba(63, 185, 80, .08);
       animation: pop .25s ease;
+    }
+    .countdown-caption {
+      color: #9da7b1;
+      line-height: 1.6;
+      max-width: 18rem;
     }
     @keyframes pop {
       0%   { transform: scale(1.25); }
@@ -95,31 +277,100 @@
 
     /* ── Footer ──────────────────────────────────────────────────────────── */
     .footer {
-      position: fixed;
+      position: absolute;
+      left: 3rem;
+      right: 3rem;
       bottom: 1.5rem;
-      font-size: .8rem;
-      color: #484f58;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: .82rem;
+      color: #6e7681;
+    }
+    .footer strong { color: #9da7b1; font-weight: 600; }
+
+    @media (max-width: 920px) {
+      body {
+        padding: 1.5rem;
+      }
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+      .brand-panel,
+      .status-panel {
+        min-height: auto;
+      }
+      .footer {
+        position: static;
+        margin-top: 1rem;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="logo">Odoo <span>POS</span></div>
-  <div class="sub">Punto de Venta</div>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
 
-  <div class="spinner" id="spinner"></div>
+  <main class="app-shell">
+    <section class="brand-panel">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Kiosk Startup</div>
+        <div class="logo">Odoo <span>POS</span></div>
+        <div class="sub">Punto de venta listo para operar</div>
+        <p class="lead">
+          Inicializando el terminal, verificando servicios locales y preparando la
+          sesión de caja para que el arranque sea estable incluso sin conectividad.
+        </p>
+        <div class="brand-pills">
+          <span class="pill">Offline-ready</span>
+          <span class="pill">Arranque guiado</span>
+          <span class="pill">Estado en tiempo real</span>
+        </div>
+      </div>
 
-  <div class="status">
-    <span>Preparando el sistema, por favor espere&hellip;</span>
-    <span id="phase">Cargando componentes del sistema</span>
-    <span id="attempt"></span>
+      <div class="brand-signature">
+        <strong>Comodoo Digital</strong>
+        <span>Sistema integrado de punto de venta basado en Odoo POS</span>
+      </div>
+    </section>
+
+    <section class="status-panel">
+      <div class="status-card-label">Estado del sistema</div>
+      <h1 class="status-title">Preparando el entorno de venta</h1>
+      <p class="status-lead">
+        La aplicación se abrirá automáticamente cuando el backend confirme que el
+        terminal está listo para trabajar.
+      </p>
+
+      <div class="progress-rail" aria-hidden="true"></div>
+
+      <div class="spinner" id="spinner"></div>
+
+      <div class="status">
+        <span class="status-intro">Arranque en curso, por favor espere&hellip;</span>
+        <span id="phase">Cargando componentes del sistema</span>
+        <span id="attempt"></span>
+      </div>
+
+      <div id="countdown-wrap">
+        <span id="ready-label">&#10003;&nbsp; ¡Odoo POS listo!</span>
+        <div class="countdown-row">
+          <div id="counter">5</div>
+          <div class="countdown-caption">
+            Redirigiendo automáticamente a la pantalla principal del terminal.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    <span><strong>Odoo POS</strong> · Terminal kiosko de punto de venta</span>
+    <span>Comodoo Digital &mdash; Inicio seguro del sistema</span>
   </div>
-
-  <div id="countdown-wrap">
-    <span id="ready-label">&#10003;&nbsp; ¡Odoo POS listo!</span>
-    <div id="counter">5</div>
-  </div>
-
-  <div class="footer">Comodoo Digital &mdash; Sistema de punto de venta</div>
 
   <script>
     "use strict";
@@ -128,7 +379,7 @@
     var ODOO_URL    = "http://localhost:8069";
     var HEALTH_URL  = ODOO_URL + "/web/health";
     var POLL_MS     = 2000;   // poll interval while waiting
-    var COUNTDOWN_S = 1;      // seconds before redirect
+    var COUNTDOWN_S = 5;      // seconds before redirect
 
     /* ── UI references ──────────────────────────────────────────────────── */
     var spinner       = document.getElementById("spinner");
@@ -139,11 +390,13 @@
 
     /* ── Rotating loading messages ──────────────────────────────────────── */
     var loadingMsgs = [
+      "Preparando la interfaz de Odoo POS",
       "Cargando imagen del sistema",
       "Importando servicios de la aplicaci\u00f3n",
       "Inicializando la base de datos",
       "Arrancando el servidor Odoo",
       "Configurando m\u00f3dulos del punto de venta",
+      "Verificando disponibilidad del terminal",
       "Casi listo\u2026"
     ];
     var msgIdx = 0;
@@ -171,7 +424,7 @@
 
     function checkHealth() {
       attempt++;
-      attemptEl.textContent = "Comprobando disponibilidad… (intento " + attempt + ")";
+      attemptEl.textContent = "Comprobando disponibilidad de Odoo POS… (intento " + attempt + ")";
 
       // Strict path: read body and check health markers.
       fetch(HEALTH_URL, { method: "GET", cache: "no-store" })
@@ -186,7 +439,7 @@
             if (bodyLooksHealthy(body)) {
               markReady();
             } else {
-              attemptEl.textContent = "Servidor respondiendo, esperando inicialización…";
+              attemptEl.textContent = "Servidor respondiendo, terminando inicialización…";
               scheduleNext();
             }
           });
@@ -196,7 +449,7 @@
           // Fallback to connectivity probe with no-cors: if it resolves, backend is reachable.
           fetch(HEALTH_URL, { method: "GET", mode: "no-cors", cache: "no-store" })
             .then(function () {
-              attemptEl.textContent = "Servicio disponible (modo compatibilidad), continuando…";
+              attemptEl.textContent = "Servicio disponible (modo compatibilidad), preparando acceso…";
               markReady();
             })
             .catch(function () {
@@ -222,7 +475,7 @@
       /* Update status text */
       phaseEl.style.color = "#3fb950";
       phaseEl.textContent = "Sistema listo";
-      attemptEl.textContent = "Conectando con Odoo POS\u2026";
+      attemptEl.textContent = "Accediendo a Odoo POS en unos segundos\u2026";
 
       /* Show countdown */
       countdownWrap.classList.add("visible");
