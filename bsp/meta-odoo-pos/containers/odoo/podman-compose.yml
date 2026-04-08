@@ -25,7 +25,6 @@ services:
         condition: service_healthy
     ports:
       - "8069:8069"
-      - "8072:8072"
     environment:
       - PGHOST=db
       - PGUSER=odoo
