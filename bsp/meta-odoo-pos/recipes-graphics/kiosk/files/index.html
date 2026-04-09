@@ -378,8 +378,14 @@
     /* ── Constants ──────────────────────────────────────────────────────── */
     var ODOO_URL    = "http://localhost:8069";
     var HEALTH_URL  = ODOO_URL + "/web/health";
+    var AUTH_URL    = ODOO_URL + "/web/session/authenticate";
+    var LOGIN_URL   = ODOO_URL + "/web/login";
+    var LOGIN_NEXT  = ODOO_URL + "/odoo";
+    var DB_NAME     = "odoo";
+    var LOGIN_USER  = "odoo@example.com";
+    var LOGIN_PASS  = "adm";
     var POLL_MS     = 2000;   // poll interval while waiting
-    var COUNTDOWN_S = 5;      // seconds before redirect
+    var COUNTDOWN_S = 5;      // seconds before auto-login
 
     /* ── UI references ──────────────────────────────────────────────────── */
     var spinner       = document.getElementById("spinner");
@@ -408,6 +414,7 @@
     /* ── Health check ───────────────────────────────────────────────────── */
     var attempt = 0;
     var readyTriggered = false;
+    var loginTriggered = false;
 
     function markReady() {
       if (readyTriggered) {
@@ -466,6 +473,76 @@
       setTimeout(checkHealth, POLL_MS);
     }
 
+    function submitLoginForm() {
+      var form = document.createElement("form");
+      form.method = "POST";
+      form.action = LOGIN_URL;
+      form.style.display = "none";
+
+      [
+        ["db", DB_NAME],
+        ["login", LOGIN_USER],
+        ["password", LOGIN_PASS],
+        ["redirect", LOGIN_NEXT]
+      ].forEach(function (entry) {
+        var input = document.createElement("input");
+        input.type = "hidden";
+        input.name = entry[0];
+        input.value = entry[1];
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    }
+
+    function performAutoLogin() {
+      if (loginTriggered) {
+        return;
+      }
+      loginTriggered = true;
+
+      phaseEl.style.color = "#3fb950";
+      phaseEl.textContent = "Autenticando en Odoo POS";
+      attemptEl.textContent = "Iniciando sesión automáticamente…";
+
+      fetch(AUTH_URL, {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "call",
+          params: {
+            db: DB_NAME,
+            login: LOGIN_USER,
+            password: LOGIN_PASS
+          }
+        })
+      })
+        .then(function (resp) {
+          if (!resp.ok) {
+            throw new Error("HTTP " + resp.status);
+          }
+          return resp.json();
+        })
+        .then(function (data) {
+          if (data && data.result && data.result.uid) {
+            attemptEl.textContent = "Sesión iniciada. Abriendo terminal…";
+            window.location.href = LOGIN_NEXT;
+            return;
+          }
+          throw new Error("Respuesta de autenticación inválida");
+        })
+        .catch(function () {
+          attemptEl.textContent = "Autenticación por API no disponible. Probando acceso compatible…";
+          submitLoginForm();
+        });
+    }
+
     /* ── Called once Odoo is confirmed healthy ──────────────────────────── */
     function onOdooReady() {
       /* Stop rotating messages & spinner */
@@ -475,7 +552,7 @@
       /* Update status text */
       phaseEl.style.color = "#3fb950";
       phaseEl.textContent = "Sistema listo";
-      attemptEl.textContent = "Accediendo a Odoo POS en unos segundos\u2026";
+      attemptEl.textContent = "Preparando inicio de sesión automático…";
 
       /* Show countdown */
       countdownWrap.classList.add("visible");
@@ -492,8 +569,8 @@
 
         if (count <= 0) {
           clearInterval(tick);
-          attemptEl.textContent = "";
-          window.location.href = ODOO_URL;
+          attemptEl.textContent = "Conectando con el terminal…";
+          performAutoLogin();
         }
       }, 1000);
     }

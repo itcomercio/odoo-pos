@@ -27,6 +27,9 @@ ODOO_LIMIT_TIME_REAL = os.getenv('ODOO_LIMIT_TIME_REAL', '900')
 ODOO_WORKERS = os.getenv('ODOO_WORKERS', '0')
 ODOO_LIMIT_MEMORY_SOFT = os.getenv('ODOO_LIMIT_MEMORY_SOFT', '2147483648')
 ODOO_LIMIT_MEMORY_HARD = os.getenv('ODOO_LIMIT_MEMORY_HARD', '2684354560')
+# Módulos a instalar automáticamente solo en primer arranque.
+# pos_restaurant arrastra el TPV (point_of_sale) como dependencia.
+AUTO_INSTALL_MODULES = os.getenv('AUTO_INSTALL_MODULES', 'pos_restaurant')
 
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'odoo@example.com')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'adm')
@@ -144,6 +147,85 @@ def db_schema_initialized():
     except Exception as e:
         print(f"Error comprobando esquema Odoo: {e}")
         return False
+
+def parse_auto_install_modules():
+    modules = [m.strip() for m in AUTO_INSTALL_MODULES.split(',') if m.strip()]
+    # Mantener orden sin duplicados.
+    unique = []
+    for module in modules:
+        if module not in unique:
+            unique.append(module)
+    return unique
+
+def installed_modules(module_names):
+    """Devuelve set de módulos ya instalados en la DB."""
+    if not module_names:
+        return set()
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT,
+            connect_timeout=5,
+        )
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT name
+                FROM ir_module_module
+                WHERE name = ANY(%s)
+                  AND state = 'installed'
+                """,
+                (module_names,)
+            )
+            rows = cur.fetchall()
+        conn.close()
+        return {row[0] for row in rows}
+    except Exception as e:
+        print(f"Error comprobando módulos instalados: {e}")
+        return set()
+
+def install_initial_modules():
+    """
+    Instala módulos iniciales una sola vez en primer arranque.
+    Es idempotente: solo instala los que faltan.
+    """
+    modules = parse_auto_install_modules()
+    if not modules:
+        print("No hay módulos configurados para auto-instalación inicial.")
+        return
+
+    already_installed = installed_modules(modules)
+    pending = [m for m in modules if m not in already_installed]
+
+    if not pending:
+        print(f"Módulos iniciales ya instalados: {', '.join(modules)}")
+        return
+
+    CUSTOM_ADDONS = "/home/odoo/.local/custom_addons"
+    prepare_custom_addons_path(CUSTOM_ADDONS)
+
+    print(f"Instalando módulos iniciales en primer arranque: {', '.join(pending)}")
+    cmd = [
+        '/odoo/odoo-bin',
+        '--config', '/dev/null',
+        '--db_host', DB_HOST,
+        '--db_port', DB_PORT,
+        '--db_user', DB_USER,
+        '--db_password', DB_PASSWORD,
+        '-d', DB_NAME,
+        '--workers', '0',
+        '--without-demo', 'True',
+        '--addons-path', '/odoo/addons,/home/odoo/.local/custom_addons',
+        '--stop-after-init',
+        '-i', ','.join(pending),
+    ]
+
+    subprocess.run(cmd, cwd='/odoo', check=True)
+    print(f"✅ Módulos instalados correctamente: {', '.join(pending)}")
 
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -365,7 +447,8 @@ if __name__ == '__main__':
         # fue recreado pero el volumen persistente tiene los datos).
         if db_exists() and db_schema_initialized():
             print("La DB ya existe y tiene esquema Odoo. "
-                  "Intentando crear marcador y arrancando directamente.")
+                  "Verificando módulos iniciales antes de crear marcador.")
+            install_initial_modules()
             mark_db_initialized()
             exec_odoo()
 
@@ -402,6 +485,10 @@ if __name__ == '__main__':
         print("Terminando proceso Odoo temporal...")
         odoo_proc.terminate()
         odoo_proc.wait()
+
+        # Instala módulos de negocio iniciales (p.ej. pos_restaurant -> TPV)
+        # antes de sellar primer arranque con el marcador.
+        install_initial_modules()
 
         marker_created = mark_db_initialized()
         if not marker_created:
