@@ -14,10 +14,16 @@ IMAGE_FSTYPES:append = " tar.zst"
 # Suppress multiple-provider warning for weston-init.
 PREFERRED_RPROVIDER_weston-init = "weston-init"
 
-# Include Odoo container runtime, kiosk browser, and Chromium.
+# Include Odoo container runtime, kiosk browser and Chromium.
 # odoo-container pulls in: podman, postgresql, postgresql-server, bash, shadow.
 # iproute2-ss provides the ss command for network diagnostics (separate subpackage in Yocto).
-IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iproute2 iproute2-ss"
+# Weston on-screen keyboard binary (/usr/libexec/weston-keyboard) is shipped
+# by package 'weston' in poky master, not by a separate 'weston-keyboard' pkg.
+# Extra diagnostics requested on target:
+# - weston-info -> package weston
+# - libinput    -> package libinput-bin
+# - systemd-analyze -> package systemd-analyze
+IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iproute2 iproute2-ss weston libinput-bin systemd-analyze"
 
 # Enforce the final desired unit state in the generated rootfs.
 # This is the most reliable place to do it: even if package postinst/presets

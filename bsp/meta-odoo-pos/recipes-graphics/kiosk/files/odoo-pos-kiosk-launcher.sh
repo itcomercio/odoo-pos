@@ -4,7 +4,7 @@ set -eu
 LOCAL_SPLASH="file:///usr/share/odoo-pos/kiosk/index.html"
 PROFILE_DIR="/var/lib/odoo-pos/chromium-profile"
 
-# ── Detect browser ────────────────────────────────────────────────────────────
+# Detect browser
 BROWSER=""
 for candidate in chromium chromium-browser; do
     if command -v "$candidate" >/dev/null 2>&1; then
@@ -32,18 +32,18 @@ else
 fi
 export LANGUAGE="es_ES:es"
 
-# ── Ensure DBus is properly configured (system bus).
+# Ensure DBus is properly configured (system bus).
 # This reduces noise and prevents Chromium from trying alternative DBus paths.
 export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/run/dbus/system_bus_socket"
 
-# ── Clean profile on every boot to avoid corruption/cache issues ────────────────
+# Clean profile on every boot to avoid corruption/cache issues
 # (Chromium retains state from previous runs which can cause render failures).
 if [ -d "${PROFILE_DIR}" ]; then
     rm -rf "${PROFILE_DIR}"
 fi
 mkdir -p "${PROFILE_DIR}"
 
-# ── Common Chromium flags ─────────────────────────────────────────────────────
+# Common Chromium flags
 CHROMIUM_FLAGS=(
     --kiosk
     --no-first-run
@@ -54,6 +54,8 @@ CHROMIUM_FLAGS=(
     --accept-lang=es-ES,es
     --ozone-platform=wayland
     --enable-features=UseOzonePlatform
+    --enable-wayland-ime
+    --wayland-text-input-version=1
     --disable-background-networking
     --disable-component-update
     --disable-component-cloud-policy
@@ -84,7 +86,7 @@ CHROMIUM_FLAGS=(
     --allow-insecure-localhost
 )
 
-# ── Discover Wayland socket ───────────────────────────────────────────────────
+# Discover Wayland socket
 WESTON_UID=$(id -u weston 2>/dev/null || true)
 SEARCH_DIRS=""
 [ -n "$WESTON_UID" ] && SEARCH_DIRS="/run/user/${WESTON_UID}"
@@ -114,7 +116,7 @@ unset DBUS_SESSION_BUS_ADDRESS DBUS_STARTER_ADDRESS DBUS_STARTER_BUS_TYPE
 
 echo "Wayland socket: ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}"
 
-# ── Helper: dismiss psplash boot splash ────────────────────────────────────────
+# Helper: dismiss psplash boot splash
 # Send QUIT command to psplash via its FIFO once Chromium has had a moment to
 # paint the local splash page, minimizing any visible gap during hand-off.
 dismiss_psplash() {
