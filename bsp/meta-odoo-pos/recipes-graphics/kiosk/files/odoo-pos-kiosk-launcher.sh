@@ -36,19 +36,15 @@ export LANGUAGE="es_ES:es"
 # This reduces noise and prevents Chromium from trying alternative DBus paths.
 export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/run/dbus/system_bus_socket"
 
-# Clean profile on every boot to avoid corruption/cache issues
-# (Chromium retains state from previous runs which can cause render failures).
-if [ -d "${PROFILE_DIR}" ]; then
-    rm -rf "${PROFILE_DIR}"
-fi
-mkdir -p "${PROFILE_DIR}"
+mkdir -p "${PROFILE_DIR}" 2> /dev/null
 
 # Common Chromium flags
 CHROMIUM_FLAGS=(
     --kiosk
+    --no-sandbox
+    --test-type
     --no-first-run
     --no-default-browser-check
-    --disable-infobars
     --disable-translate
     --lang=es-ES
     --accept-lang=es-ES,es
@@ -64,21 +60,13 @@ CHROMIUM_FLAGS=(
     --disable-notifications
     --check-for-update-interval=31536000
     --log-level=3
-    # Disable GPU rendering: more stable in VM/Wayland environments.
-    # If hardware acceleration is needed later, remove this flag and add:
-    #   --enable-gpu --use-vulkan=native
     --disable-gpu
     --disable-software-rasterizer
-    # Extra safety: suppress translation and password-manager UI even if policy
-    # loading is delayed/failed on first profile startup.
-    --disable-features=MediaRouter,Translate,AutofillServerCommunication,OptimizationHints,OnDeviceModel,TranslateUI,PasswordManagerOnboarding,PasswordManagerEnableUPM,PasswordManagerSignInPromo
-    --disable-save-password-bubble
+    --disable-features=MediaRouter,Translate,AutofillServerCommunication,OptimizationHints,OnDeviceModel,TranslateUI
     --disable-sync
     --password-store=basic
     --user-data-dir="${PROFILE_DIR}"
     --noerrdialogs
-    --no-sandbox
-    # POS hardening trade-off (requested): disable browser security barriers.
     --disable-web-security
     --allow-running-insecure-content
     --disable-site-isolation-trials
