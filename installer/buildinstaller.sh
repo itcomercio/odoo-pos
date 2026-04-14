@@ -8,8 +8,8 @@ Uso:
 
 Opciones:
     --env         Ejecuta _01-mk-env.sh (dependencias RPMs del host)
-    --bootdisk    Ejecuta _02-mk-bootdisk.sh (crea initrd con nuevo instalador)
-    --cdrom       Ejecuta _03-mk-cdrom.sh "${PWD}/CD" (crea ISO con nuevo BSP)
+    --bootdisk    Ejecuta _02-mk-bootdisk.sh (crea initrd con nuevo instalador - Cuando actualicemos instalador)
+    --cdrom       Ejecuta _03-mk-cdrom.sh "${PWD}/CD" (crea ISO con nuevo BSP - Cuando actualicemos el BSP)
     --install     Ejecuta _04-run-install.sh --install
     --install --early
                   Sub-opcion de --install: ejecuta _04-run-install.sh --early
