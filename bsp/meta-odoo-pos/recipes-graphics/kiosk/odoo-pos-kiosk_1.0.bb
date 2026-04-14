@@ -10,6 +10,7 @@ SRC_URI = " \
     file://odoo-pos-kiosk-wait-wayland.conf \
     file://odoo-pos-kiosk-launcher.sh \
     file://index.html \
+    file://Official_Odoo_logo.svg \
     file://psplash-systemd-override.conf \
     file://psplash-progress-helper.sh \
     file://getty-override.conf \
@@ -61,6 +62,7 @@ do_install() {
 
     install -d ${D}${datadir}/odoo-pos/kiosk
     install -m 0644 ${UNPACKDIR}/index.html ${D}${datadir}/odoo-pos/kiosk/index.html
+    install -m 0644 ${UNPACKDIR}/Official_Odoo_logo.svg ${D}${datadir}/odoo-pos/kiosk/Official_Odoo_logo.svg
 
     # Chromium managed policy: disable translation UI and credential-save prompts.
     install -d ${D}${sysconfdir}/chromium/policies/managed
@@ -85,6 +87,7 @@ FILES:${PN} += " \
     ${bindir}/odoo-pos-kiosk-launcher.sh \
     ${bindir}/psplash-progress-helper.sh \
     ${datadir}/odoo-pos/kiosk/index.html \
+    ${datadir}/odoo-pos/kiosk/Official_Odoo_logo.svg \
     ${sysconfdir}/chromium/policies/managed/odoo-pos.json \
     ${sysconfdir}/chromium-browser/policies/managed/odoo-pos.json \
     /var/lib/odoo-pos/chromium-profile \

@@ -44,7 +44,7 @@
     .app-shell {
       position: relative;
       z-index: 1;
-      width: min(680px, 100%);
+      width: min(1040px, 96vw);
       display: block;
       align-items: stretch;
     }
@@ -57,39 +57,32 @@
     /* ── Status card ─────────────────────────────────────────────────────── */
     .status-panel {
       border-radius: 24px;
-      padding: clamp(2rem, 3vw, 2.8rem);
+      padding: clamp(1.8rem, 2.6vw, 2.4rem) clamp(2rem, 3.2vw, 3.2rem);
       display: flex;
       flex-direction: column;
       justify-content: center;
-      min-height: 500px;
+      min-height: 360px;
+      align-items: center;
+      text-align: center;
     }
-    .status-brand {
-      color: #875a7b;
-      font-size: clamp(1.45rem, 2.6vw, 2rem);
-      font-weight: 700;
-      letter-spacing: .01em;
-      margin-bottom: .45rem;
+    .status-logo {
+      width: clamp(240px, 32vw, 420px);
+      height: auto;
+      margin: .3rem 0 .8rem;
+      display: block;
     }
-    .status-card-label {
-      color: #8b949e;
-      font-size: .8rem;
-      letter-spacing: .12em;
-      text-transform: uppercase;
+    .status-subtitle {
+      color: #c9d1d9;
+      font-size: clamp(1.55rem, 2.8vw, 2.25rem);
+      line-height: 1.25;
       margin-bottom: 1rem;
-    }
-    .status-title {
-      font-size: clamp(1.95rem, 3.2vw, 2.7rem);
-      line-height: 1.18;
-      margin-bottom: .8rem;
-      color: #f0f6fc;
-      max-width: 14ch;
-      text-wrap: balance;
+      font-weight: 600;
     }
     .status-lead {
       color: #9da7b1;
-      line-height: 1.75;
-      margin-bottom: 1.8rem;
-      max-width: 42rem;
+      line-height: 1.55;
+      margin-bottom: 1.2rem;
+      max-width: 56rem;
     }
     .progress-rail {
       position: relative;
@@ -97,7 +90,8 @@
       border-radius: 999px;
       overflow: hidden;
       background: rgba(255,255,255,.06);
-      margin-bottom: 2rem;
+      margin-bottom: 1.2rem;
+      width: min(860px, 100%);
     }
     .progress-rail::before {
       content: "";
@@ -120,7 +114,7 @@
       border-top-color: #875a7b;
       border-radius: 50%;
       animation: spin .9s linear infinite;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
       transition: opacity .4s;
       box-shadow: 0 0 28px rgba(135, 90, 123, .16);
     }
@@ -131,9 +125,10 @@
     .status {
       font-size: clamp(.98rem, 2vw, 1.14rem);
       color: #8b949e;
-      text-align: left;
+      text-align: center;
       line-height: 1.85;
-      min-height: 6.4em;
+      min-height: 5.2em;
+      width: min(860px, 100%);
     }
     .status-intro {
       display: block;
@@ -158,10 +153,10 @@
 
     /* ── Countdown bubble ────────────────────────────────────────────────── */
     #countdown-wrap {
-      margin-top: 2rem;
+      margin-top: 1.2rem;
       display: none;
       flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
       gap: .7rem;
     }
     #countdown-wrap.visible { display: flex; }
@@ -173,6 +168,7 @@
     .countdown-row {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 1rem;
     }
     #counter {
@@ -191,7 +187,8 @@
     .countdown-caption {
       color: #9da7b1;
       line-height: 1.6;
-      max-width: 18rem;
+      max-width: 24rem;
+      text-align: left;
     }
     @keyframes pop {
       0%   { transform: scale(1.25); }
@@ -235,9 +232,8 @@
 
   <main class="app-shell">
     <section class="status-panel">
-      <div class="status-card-label">Estado del sistema</div>
-      <div class="status-brand">Odoo Terminal Punto de Venta</div>
-      <h1 class="status-title">Preparando el entorno de venta</h1>
+      <img class="status-logo" src="Official_Odoo_logo.svg" alt="Odoo">
+      <div class="status-subtitle">Terminal Punto de Venta</div>
       <p class="status-lead">
         La aplicación se abrirá automáticamente cuando el backend confirme que el terminal
         está listo para trabajar.
@@ -248,7 +244,6 @@
       <div class="spinner" id="spinner"></div>
 
       <div class="status">
-        <span class="status-intro">Arranque en curso, por favor espere&hellip;</span>
         <span id="phase">Cargando componentes del sistema</span>
         <span id="attempt"></span>
       </div>
@@ -381,11 +376,7 @@
               markReady();
             })
             .catch(function () {
-              if (error && error.message) {
-                attemptEl.textContent = "Esperando a Odoo… " + error.message;
-              } else {
-                attemptEl.textContent = "Servicio no disponible aún, reintentando…";
-              }
+              attemptEl.textContent = "Servicio no disponible aún, reintentando…";
               scheduleNext();
             });
         });
