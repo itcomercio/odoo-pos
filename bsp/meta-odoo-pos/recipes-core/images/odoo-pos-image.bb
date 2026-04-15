@@ -16,6 +16,7 @@ PREFERRED_RPROVIDER_weston-init = "weston-init"
 
 # Include Odoo container runtime, kiosk browser and Chromium.
 # odoo-container pulls in: podman, postgresql, postgresql-server, bash, shadow.
+# Add local printing stack for USB receipts via Chromium kiosk printing.
 # iproute2-ss provides the ss command for network diagnostics (separate subpackage in Yocto).
 # Weston on-screen keyboard binary (/usr/libexec/weston-keyboard) is shipped
 # by package 'weston' in poky master, not by a separate 'weston-keyboard' pkg.
@@ -23,7 +24,7 @@ PREFERRED_RPROVIDER_weston-init = "weston-init"
 # - weston-info -> package weston
 # - libinput    -> package libinput-bin
 # - systemd-analyze -> package systemd-analyze
-IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iproute2 iproute2-ss weston libinput-bin systemd-analyze"
+IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iproute2 iproute2-ss weston libinput-bin systemd-analyze cups cups-filters"
 
 # Enforce the final desired unit state in the generated rootfs.
 # This is the most reliable place to do it: even if package postinst/presets
@@ -67,6 +68,14 @@ disable_unused_pos_services() {
             -path "*/network-online.target.wants/$unit" -o \
             -path "*/sockets.target.wants/$unit" \
         \) -delete 2>/dev/null || true
+    done
+
+    # Keep local print backend available for Chromium kiosk silent printing.
+    for unit in cups.service cups.socket; do
+        if [ -e "${IMAGE_ROOTFS}${systemd_system_unitdir}/$unit" ] || \
+           [ -e "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/$unit" ]; then
+            systemctl --root="${IMAGE_ROOTFS}" enable "$unit" >/dev/null 2>&1 || true
+        fi
     done
 
     # systemd-networkd installs wait-online via network-online.target.wants.

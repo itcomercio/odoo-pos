@@ -1,11 +1,12 @@
 [Unit]
 Description=Odoo POS Kiosk Browser
-After=weston.service run-postinsts.service
+After=weston.service run-postinsts.service cups.service
 Requires=weston.service
 # Chromium always starts on the local splash page; the page polls /web/health
 # and performs the final redirect itself when Odoo is ready.
 # We use Wants= (not Requires=) so the kiosk always starts even if Odoo is slow.
 Wants=odoo.service
+Wants=cups.service
 PartOf=weston.service
 
 [Service]

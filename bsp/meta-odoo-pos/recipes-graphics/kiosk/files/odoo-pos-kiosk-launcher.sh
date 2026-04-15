@@ -41,6 +41,7 @@ mkdir -p "${PROFILE_DIR}" 2> /dev/null
 # Common Chromium flags
 CHROMIUM_FLAGS=(
     --kiosk
+    --kiosk-printing
     --no-sandbox
     --test-type
     --no-first-run
