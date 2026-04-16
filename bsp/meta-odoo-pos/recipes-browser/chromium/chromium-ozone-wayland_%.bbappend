@@ -32,3 +32,5 @@ do_copy_clang_library:append() {
     done
 }
 
+# Enable CUPS backend so Chromium can list and use CUPS printers.
+PACKAGECONFIG:append = " cups"
