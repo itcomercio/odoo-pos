@@ -26,7 +26,11 @@ PREFERRED_RPROVIDER_weston-init = "weston-init"
 # - systemd-analyze -> package systemd-analyze
 # Python app deps requested on target:
 # - jsonify is provided by Flask itself (flask.jsonify)
-IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iproute2 iproute2-ss weston libinput-bin systemd-analyze cups cups-filters python3-flask python3-requests python3-pyserial"
+# USB thermal printer support (Zebra / thermal receipt printers):
+# - usbutils -> lsusb, usbhid-dump for diagnostics
+# - libusb1 -> USB device library (v1.0 API)
+# - odoo-pos-usb-printer-rules -> custom udev rules + diagnostic script
+IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iproute2 iproute2-ss weston libinput-bin systemd-analyze cups cups-filters python3-flask python3-requests python3-pyserial usbutils libusb1 odoo-pos-usb-printer-rules"
 
 # Enforce the final desired unit state in the generated rootfs.
 # This is the most reliable place to do it: even if package postinst/presets
