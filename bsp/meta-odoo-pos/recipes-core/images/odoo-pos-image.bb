@@ -31,7 +31,12 @@ PREFERRED_RPROVIDER_weston-init = "weston-init"
 # - libusb1 -> USB device library (v1.0 API)
 # - odoo-pos-usb-printer-rules -> custom udev rules + diagnostic script
 # - iotbox -> daemon de odoo-iotbox gestionado por systemd
-IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iotbox iproute2 iproute2-ss weston libinput-bin systemd-analyze cups cups-filters python3-flask python3-requests python3-pyserial usbutils libusb1 odoo-pos-usb-printer-rules"
+# Console keyboard reliability on maintenance TTYs:
+# - kbd + kbd-keymaps provide loadkeys and keymap files
+# - locale-base-es-es adds es_ES locale support used by shell/apps
+# Hardware hotkeys:
+# - triggerhappy daemon + odoo-pos-hotkeys mappings (F1 -> custom hook)
+IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iotbox iproute2 iproute2-ss weston libinput-bin systemd-analyze cups cups-filters python3-flask python3-requests python3-pyserial usbutils libusb1 odoo-pos-usb-printer-rules kbd kbd-keymaps locale-base-es-es triggerhappy odoo-pos-hotkeys"
 
 # Enforce the final desired unit state in the generated rootfs.
 # This is the most reliable place to do it: even if package postinst/presets
@@ -85,9 +90,25 @@ disable_unused_pos_services() {
         fi
     done
 
+    # Enable triggerhappy for global hotkey handling from physical keyboards.
+    if [ -e "${IMAGE_ROOTFS}${systemd_system_unitdir}/triggerhappy.service" ] || \
+       [ -e "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/triggerhappy.service" ]; then
+        systemctl --root="${IMAGE_ROOTFS}" enable "triggerhappy.service" >/dev/null 2>&1 || true
+    fi
+
     # systemd-networkd installs wait-online via network-online.target.wants.
     # Remove it explicitly to avoid boot delays on the kiosk.
     rm -f "${IMAGE_ROOTFS}${sysconfdir}/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service"
+
+    # Force deterministic Linux console mapping on the target (TTY mode).
+    # This avoids layout drift with some USB keyboards where 'es' is not
+    # applied early enough in boot.
+    install -d "${IMAGE_ROOTFS}${sysconfdir}"
+    cat > "${IMAGE_ROOTFS}${sysconfdir}/vconsole.conf" << 'EOF'
+KEYMAP=es
+FONT=eurlatgr
+EOF
+    systemctl --root="${IMAGE_ROOTFS}" enable "systemd-vconsole-setup.service" >/dev/null 2>&1 || true
 
     # Kiosk profile: keep tty1 reserved for Weston/Chromium to avoid visible
     # login flashes, but preserve local maintenance access on tty2.
@@ -102,6 +123,7 @@ After=weston.service odoo-pos-kiosk.service
 
 [Service]
 ExecStartPre=
+ExecStartPre=/usr/bin/loadkeys es
 ExecStartPre=/bin/sleep 15
 EOF
 
