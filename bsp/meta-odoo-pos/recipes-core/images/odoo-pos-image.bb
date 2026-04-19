@@ -24,7 +24,9 @@ PREFERRED_RPROVIDER_weston-init = "weston-init"
 # - weston-info -> package weston
 # - libinput    -> package libinput-bin
 # - systemd-analyze -> package systemd-analyze
-IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iproute2 iproute2-ss weston libinput-bin systemd-analyze cups cups-filters"
+# Python app deps requested on target:
+# - jsonify is provided by Flask itself (flask.jsonify)
+IMAGE_INSTALL:append = " odoo-pos-kiosk chromium-ozone-wayland odoo-container iproute2 iproute2-ss weston libinput-bin systemd-analyze cups cups-filters python3-flask python3-requests python3-pyserial"
 
 # Enforce the final desired unit state in the generated rootfs.
 # This is the most reliable place to do it: even if package postinst/presets
