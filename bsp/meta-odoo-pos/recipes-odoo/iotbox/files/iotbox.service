@@ -1,0 +1,16 @@
+[Unit]
+Description=Odoo IoTBox daemon
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/iotbox/iotbox.env
+WorkingDirectory=/opt/iotbox
+ExecStart=/usr/bin/python3 /opt/iotbox/iotbox.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
