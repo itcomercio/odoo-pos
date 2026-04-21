@@ -110,6 +110,13 @@ FONT=eurlatgr
 EOF
     systemctl --root="${IMAGE_ROOTFS}" enable "systemd-vconsole-setup.service" >/dev/null 2>&1 || true
 
+    # Spanish locale for interactive bash sessions (root and any user).
+    install -d "${IMAGE_ROOTFS}${sysconfdir}/profile.d"
+    cat > "${IMAGE_ROOTFS}${sysconfdir}/profile.d/odoo-pos-locale.sh" << 'EOF'
+export LANG=es_ES.UTF-8
+export LC_ALL=es_ES.UTF-8
+EOF
+
     # Kiosk profile: keep tty1 reserved for Weston/Chromium to avoid visible
     # login flashes, but preserve local maintenance access on tty2.
     systemctl --root="${IMAGE_ROOTFS}" disable "getty@tty1.service" >/dev/null 2>&1 || true
