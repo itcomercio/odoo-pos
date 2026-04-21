@@ -29,7 +29,7 @@ do_install() {
     install -d ${D}${sysconfdir}/triggerhappy/hooks
     install -m 0755 ${UNPACKDIR}/F4.sh ${D}${sysconfdir}/triggerhappy/hooks/F4.sh
 
-    # systemd drop-in: run triggerhappy as root so it can write to /dev/usb/lp0
+    # systemd drop-in: override thd to run with --user root so it can access POS devices
     install -d ${D}${systemd_system_unitdir}/triggerhappy.service.d
     install -m 0644 ${UNPACKDIR}/triggerhappy-root.conf \
         ${D}${systemd_system_unitdir}/triggerhappy.service.d/10-run-as-root.conf
