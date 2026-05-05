@@ -5,11 +5,16 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
+# No tarball: all sources are file:// — S must point to UNPACKDIR
+S = "${UNPACKDIR}"
+
+# Workaround for Fedora Python 3.14 pseudo/fakeroot tar issue
+inherit skip-fakeroot-tar
+
 SRC_URI = " \
     file://odoo-pos.conf \
     file://odoo-pos-hotkey-runner.sh \
     file://F4.sh \
-    file://triggerhappy-root.conf \
 "
 
 RDEPENDS:${PN} = " \
@@ -18,6 +23,7 @@ RDEPENDS:${PN} = " \
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
+
 
 do_install() {
     install -d ${D}${sysconfdir}/triggerhappy/triggers.d
@@ -29,15 +35,10 @@ do_install() {
     install -d ${D}${sysconfdir}/triggerhappy/hooks
     install -m 0755 ${UNPACKDIR}/F4.sh ${D}${sysconfdir}/triggerhappy/hooks/F4.sh
 
-    # systemd drop-in: override thd to run with --user root so it can access POS devices
-    install -d ${D}${systemd_system_unitdir}/triggerhappy.service.d
-    install -m 0644 ${UNPACKDIR}/triggerhappy-root.conf \
-        ${D}${systemd_system_unitdir}/triggerhappy.service.d/10-run-as-root.conf
 }
 
 FILES:${PN} += " \
     ${sysconfdir}/triggerhappy/triggers.d/odoo-pos.conf \
     ${libexecdir}/odoo-pos-hotkey-runner.sh \
     ${sysconfdir}/triggerhappy/hooks/F4.sh \
-    ${systemd_system_unitdir}/triggerhappy.service.d/10-run-as-root.conf \
 "
