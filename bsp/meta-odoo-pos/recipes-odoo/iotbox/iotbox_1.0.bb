@@ -12,8 +12,11 @@ SRC_URI = " \
 "
 
 PV = "1.0+git${SRCPV}"
-SRCREV = "7f747050461a84f652ff84117c544f4f75790a07"
+SRCREV = "${AUTOREV}"
 BB_GIT_SHALLOW = "1"
+
+IOTBOX_ADDONS_DEST = "${localstatedir}/lib/odoo/custom_addons"
+IOTBOX_ADDONS_SRC = "${S}/addon"
 
 
 inherit systemd
@@ -37,6 +40,18 @@ do_install() {
     cp -R ${S}/. ${D}/opt/iotbox/
     rm -rf ${D}/opt/iotbox/.git
 
+    install -d ${D}${IOTBOX_ADDONS_DEST}
+    if [ -d "${IOTBOX_ADDONS_SRC}" ]; then
+        for module_dir in "${IOTBOX_ADDONS_SRC}"/*; do
+            [ -d "$module_dir" ] || continue
+            [ -f "$module_dir/__manifest__.py" ] || continue
+            cp -R "$module_dir" ${D}${IOTBOX_ADDONS_DEST}/
+        done
+    fi
+
+    # Keep addons only in the Odoo custom addons volume path.
+    rm -rf ${D}/opt/iotbox/addon
+
     install -d ${D}${sysconfdir}/iotbox
     install -m 0644 ${UNPACKDIR}/iotbox.env ${D}${sysconfdir}/iotbox/iotbox.env
 
@@ -46,6 +61,7 @@ do_install() {
 
 FILES:${PN} += " \
     /opt/iotbox \
+    ${IOTBOX_ADDONS_DEST} \
     ${sysconfdir}/iotbox/iotbox.env \
     ${systemd_system_unitdir}/iotbox.service \
 "

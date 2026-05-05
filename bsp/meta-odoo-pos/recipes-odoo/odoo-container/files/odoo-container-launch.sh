@@ -12,6 +12,7 @@ fi
 : "${ODOO_WORKERS:=0}"
 : "${ODOO_LIMIT_MEMORY_SOFT:=2147483648}"
 : "${ODOO_LIMIT_MEMORY_HARD:=2684354560}"
+: "${ODOO_CUSTOM_ADDONS_HOST_PATH:=/var/lib/odoo/custom_addons}"
 
 # Ensure all Odoo data directories exist on the host volume.
 # Always enforce write permissions because the directory may already exist
@@ -20,6 +21,10 @@ for d in /var/lib/odoo /var/lib/odoo/log /var/lib/odoo/sessions /var/lib/odoo/fi
     mkdir -p "$d"
     chmod 0777 "$d"
 done
+
+# Bind-mounted destination used by entrypoint.py in --addons-path.
+mkdir -p "${ODOO_CUSTOM_ADDONS_HOST_PATH}"
+chmod 0777 "${ODOO_CUSTOM_ADDONS_HOST_PATH}"
 
 # Pre-flight: verify the OCI image was imported successfully.
 if ! podman image exists "${ODOO_CONTAINER_IMAGE}"; then
@@ -44,6 +49,7 @@ exec podman run \
     --pull=never \
     --network host \
     -v /var/lib/odoo:/var/lib/odoo:Z \
+    -v "${ODOO_CUSTOM_ADDONS_HOST_PATH}:/home/odoo/.local/custom_addons:Z" \
     -e PGHOST=127.0.0.1 \
     -e PGPORT=5432 \
     -e PGUSER=odoo \
