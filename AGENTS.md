@@ -52,6 +52,6 @@ El proyecto se divide en dos áreas principales: `bsp/` (construcción del SO) e
 - Usar el flag `--early` para depuración temprana del arranque: `./buildinstaller.sh --install --early`.
 - Revisar los logs en `installer/logs/` si falla algún paso de la construcción.
 
-## Guía de Commits
-- Usar mensajes de commit descriptivos.
-- Formato: `área: descripción breve` (ej., `bsp: añadir nueva regla udev para impresoras` o `installer: corregir lógica de particionado de disco`).
+## Gestión de Git (Human in the Loop)
+- **Prohibición de comandos de Git:** El agente **NO** debe ejecutar comandos que modifiquen la copia de trabajo o el estado del repositorio (`git add`, `git commit`, `git checkout`, `git push`, etc.).
+- **Responsabilidad del usuario:** Todas las tareas de gestión de versiones son responsabilidad exclusiva del usuario humano. El agente debe limitarse a proponer cambios en el código y, si se solicita, sugerir mensajes de commit, pero nunca ejecutarlos por su cuenta.
