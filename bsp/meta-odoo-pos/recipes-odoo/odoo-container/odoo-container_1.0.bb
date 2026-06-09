@@ -19,7 +19,7 @@ SRC_URI = " \
     file://containers.conf \
 "
 
-inherit systemd useradd
+inherit systemd useradd skip-fakeroot-tar
 
 S = "${UNPACKDIR}"
 

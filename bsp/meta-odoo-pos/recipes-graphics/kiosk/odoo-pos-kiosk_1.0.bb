@@ -17,7 +17,7 @@ SRC_URI = " \
     file://chromium-policy.json \
 "
 
-inherit systemd
+inherit systemd skip-fakeroot-tar
 
 S = "${UNPACKDIR}"
 

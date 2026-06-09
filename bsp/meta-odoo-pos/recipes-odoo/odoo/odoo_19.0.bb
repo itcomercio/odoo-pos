@@ -31,7 +31,7 @@ PV = "19.0+git${SRCPV}"
 # boot — no compilation or internet access is needed on the target device.
 do_compile[network] = "1"
 
-inherit systemd useradd
+inherit systemd useradd skip-fakeroot-tar
 
 USERADD_PACKAGES = "${PN}"
 GROUPADD_PARAM:${PN} = "--system odoo"

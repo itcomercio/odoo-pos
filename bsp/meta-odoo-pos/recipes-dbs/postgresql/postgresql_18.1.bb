@@ -16,7 +16,7 @@ SRC_URI[sha256sum] = "ff86675c336c46e98ac991ebb306d1b67621ece1d06787beaade312c2c
 
 DEPENDS = "openssl readline zlib icu bison-native flex-native perl-native"
 
-inherit autotools pkgconfig systemd useradd
+inherit autotools pkgconfig systemd useradd skip-fakeroot-tar
 
 # Loadable backend modules (e.g. dict_snowball.so) resolve some symbols from
 # the postgres executable at runtime. Ensure they are exported by the linker.
@@ -60,7 +60,7 @@ SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 # PostgreSQL embeds build directory paths in some generated/parser artifacts.
 # Keep QA enabled globally; skip only buildpaths for affected output packages.
 INSANE_SKIP:${PN} += "buildpaths"
-INSANE_SKIP:${PN}-dev += "buildpaths"
+INSANE_SKIP:${PN}-dev += "buildpaths dev-elf"
 INSANE_SKIP:${PN}-staticdev += "buildpaths"
 INSANE_SKIP:${PN}-src += "buildpaths"
 

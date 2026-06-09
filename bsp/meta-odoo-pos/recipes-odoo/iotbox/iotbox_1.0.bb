@@ -19,7 +19,7 @@ IOTBOX_ADDONS_DEST = "${localstatedir}/lib/odoo/custom_addons"
 IOTBOX_ADDONS_SRC = "${S}/addon"
 
 
-inherit systemd
+inherit systemd skip-fakeroot-tar
 
 SYSTEMD_PACKAGES = "${PN}"
 SYSTEMD_SERVICE:${PN} = "iotbox.service"
