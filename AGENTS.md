@@ -1,57 +1,57 @@
 # AGENTS.md
 
-This document provides context and instructions for AI coding agents working on the **odoo-pos** project.
+Este documento proporciona contexto e instrucciones para los agentes de programación de IA que trabajan en el proyecto **odoo-pos**.
 
-## Project Overview
-This project builds a Yocto-based OS for Odoo POS systems, including a custom installer and a hybrid ISO (BIOS/UEFI) boot system using Limine.
+## Descripción General del Proyecto
+Este proyecto construye un sistema operativo basado en Yocto para sistemas POS de Odoo, incluyendo un instalador personalizado y un sistema de arranque ISO híbrido (BIOS/UEFI) utilizando Limine.
 
-## Setup & Build Commands
-The project is divided into two main areas: `bsp/` (OS build) and `installer/` (Installation system).
+## Comandos de Configuración y Construcción
+El proyecto se divide en dos áreas principales: `bsp/` (construcción del SO) e `installer/` (sistema de instalación).
 
-### Environment Setup
-- Install host dependencies (Fedora-based):
+### Configuración del Entorno
+- Instalar dependencias en el host (basado en Fedora):
   ```bash
   cd installer && ./buildinstaller.sh --env
   ```
 
-### Yocto Build (BSP)
-- Initialize and build the Yocto image:
+### Construcción de Yocto (BSP)
+- Inicializar y construir la imagen de Yocto:
   ```bash
   cd bsp && ./yocto-bsp.sh --build
   ```
-- To prepare the environment without building:
+- Para preparar el entorno sin construir:
   ```bash
   cd bsp && ./yocto-bsp.sh --no-build
   ```
 
-### Installer & ISO Creation
-- Build everything (initrd, ISO, and run QEMU test):
+### Creación del Instalador e ISO
+- Construir todo (initrd, ISO y ejecutar prueba en QEMU):
   ```bash
   cd installer && ./buildinstaller.sh --buildall
   ```
-- Step-by-step:
-  - Create initrd: `./buildinstaller.sh --bootdisk`
-  - Create ISO: `./buildinstaller.sh --cdrom`
-  - Run installation test: `./buildinstaller.sh --install`
-  - Boot installed system: `./buildinstaller.sh --boot`
+- Paso a paso:
+  - Crear initrd: `./buildinstaller.sh --bootdisk`
+  - Crear ISO: `./buildinstaller.sh --cdrom`
+  - Ejecutar prueba de instalación: `./buildinstaller.sh --install`
+  - Arrancar el sistema instalado: `./buildinstaller.sh --boot`
 
-## Code Style & Conventions
-- **Shell Scripts:** Use `bash`. Follow existing patterns in `installer/*.sh` and `bsp/yocto-bsp.sh`. Prefer modularity and use functions from `installer/include/functions.env`.
-- **Python:** Used for the installer logic (`installer/pyinstaller/instalador.py`). Follow PEP 8 where possible.
-- **Yocto/Bitbake:** Recipes are located in `bsp/meta-odoo-pos/`. Adhere to standard OpenEmbedded metadata conventions.
-- **Systemd:** Service units are found in `bsp/meta-odoo-pos/recipes-*/files/`.
+## Estilo de Código y Convenciones
+- **Scripts de Shell:** Usar `bash`. Seguir los patrones existentes en `installer/*.sh` y `bsp/yocto-bsp.sh`. Preferir la modularidad y usar las funciones de `installer/include/functions.env`.
+- **Python:** Utilizado para la lógica del instalador (`installer/pyinstaller/instalador.py`). Seguir PEP 8 siempre que sea posible.
+- **Yocto/Bitbake:** Las recetas se encuentran en `bsp/meta-odoo-pos/`. Adherirse a las convenciones estándar de metadatos de OpenEmbedded.
+- **Systemd:** Las unidades de servicio se encuentran en `bsp/meta-odoo-pos/recipes-*/files/`.
 
-## Project Navigation
-- `bsp/meta-odoo-pos/`: The main Yocto layer containing custom recipes (Odoo, PostgreSQL, Kiosk mode, etc.).
-- `installer/pyinstaller/`: Python source for the system installer.
-- `installer/yocto/`: Directory for placing Yocto build artifacts (kernel, rootfs) before ISO creation.
-- `bsp/meta-odoo-pos/containers/`: Podman/Docker configurations for Odoo.
+## Navegación del Proyecto
+- `bsp/meta-odoo-pos/`: La capa principal de Yocto que contiene recetas personalizadas (Odoo, PostgreSQL, modo Kiosco, etc.).
+- `installer/pyinstaller/`: Código fuente en Python para el instalador del sistema.
+- `installer/yocto/`: Directorio para colocar los artefactos de construcción de Yocto (kernel, rootfs) antes de la creación de la ISO.
+- `bsp/meta-odoo-pos/containers/`: Configuraciones de Podman/Docker para Odoo.
 
-## Testing Instructions
-- Use QEMU for testing the full installation flow via `./buildinstaller.sh --install`.
-- Use `--early` flag for early boot debugging: `./buildinstaller.sh --install --early`.
-- Check logs in `installer/logs/` if a build step fails.
+## Instrucciones de Pruebas
+- Usar QEMU para probar el flujo completo de instalación mediante `./buildinstaller.sh --install`.
+- Usar el flag `--early` para depuración temprana del arranque: `./buildinstaller.sh --install --early`.
+- Revisar los logs en `installer/logs/` si falla algún paso de la construcción.
 
-## Commit Guidelines
-- Use descriptive commit messages.
-- Format: `area: brief description` (e.g., `bsp: add new udev rule for printers` or `installer: fix disk partitioning logic`).
+## Guía de Commits
+- Usar mensajes de commit descriptivos.
+- Formato: `área: descripción breve` (ej., `bsp: añadir nueva regla udev para impresoras` o `installer: corregir lógica de particionado de disco`).
